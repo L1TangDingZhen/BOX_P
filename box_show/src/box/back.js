@@ -47,7 +47,10 @@ const ThreeScene = () => {
 
   useEffect(() => {
     if (!mountRef.current) return;
-    
+
+
+    const mountNode = mountRef.current; // 保存 mountRef.current 的值
+
     // Scene setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -58,7 +61,8 @@ const ThreeScene = () => {
     rendererRef.current = renderer;
     
     renderer.setSize(800, 600);
-    mountRef.current.appendChild(renderer.domElement);
+    // mountRef.current.appendChild(renderer.domElement);
+    mountNode.appendChild(renderer.domElement); // 使用局部变量 mountNode
 
   // 创建加粗的坐标轴和标签
     // const createThickAxis = (scene, length) => {
@@ -338,8 +342,12 @@ const ThreeScene = () => {
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
       
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
+      // if (mountRef.current && renderer.domElement) {
+      //   mountRef.current.removeChild(renderer.domElement);
+      // }
+
+      if (mountNode && renderer.domElement) { // 使用局部变量 mountNode
+        mountNode.removeChild(renderer.domElement);
       }
       
       if (sceneRef.current) {
