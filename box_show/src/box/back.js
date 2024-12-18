@@ -64,32 +64,6 @@ const ThreeScene = () => {
     // mountRef.current.appendChild(renderer.domElement);
     mountNode.appendChild(renderer.domElement); // 使用局部变量 mountNode
 
-  // 创建加粗的坐标轴和标签
-    // const createThickAxis = (scene, length) => {
-    //     const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-
-    //     // X轴 - 红色
-    //     const xGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
-    //     const xAxis = new THREE.Mesh(xGeometry, material);
-    //     xAxis.rotation.z = -Math.PI / 2;
-    //     xAxis.position.set(length / 2, 0, 0);
-    //     scene.add(xAxis);
-
-    //     // Y轴 - 绿色
-    //     material.color.set(0x00ff00);
-    //     const yGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
-    //     const yAxis = new THREE.Mesh(yGeometry, material);
-    //     yAxis.position.set(0, length / 2, 0);
-    //     scene.add(yAxis);
-
-    //     // Z轴 - 蓝色
-    //     material.color.set(0x0000ff);
-    //     const zGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
-    //     const zAxis = new THREE.Mesh(zGeometry, material);
-    //     zAxis.rotation.x = -Math.PI / 2;
-    //     zAxis.position.set(0, 0, length / 2);
-    //     scene.add(zAxis);
-    // };
     const createThickAxis = (scene, length) => {
       const axisMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // 黑色轴线
     
@@ -320,9 +294,57 @@ const ThreeScene = () => {
       };
     };
 
+    const handleTouchStart = (e) => {
+      isMouseDown.current = true;
+      // 使用 `touches[0]` 获取第一个触摸点
+      mousePosition.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    };
+    
+    const handleTouchEnd = () => {
+      isMouseDown.current = false;
+    };
+    
+    const handleTouchMove = (e) => {
+      if (!isMouseDown.current) return;
+    
+      // 触摸点变化
+      const deltaX = e.touches[0].clientX - mousePosition.current.x;
+      const deltaY = e.touches[0].clientY - mousePosition.current.y;
+    
+      cameraRotation.current.x += deltaY * 0.01;
+      cameraRotation.current.y += deltaX * 0.01;
+    
+      const radius = Math.sqrt(
+        camera.position.x ** 2 +
+        camera.position.y ** 2 +
+        camera.position.z ** 2
+      );
+    
+      camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+      camera.position.y = radius * Math.sin(cameraRotation.current.x);
+      camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+    
+      camera.lookAt(0, 0, 0);
+    
+      mousePosition.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    };
+    
+
     renderer.domElement.addEventListener('mousedown', handleMouseDown);
+    renderer.domElement.addEventListener('touchstart', handleTouchStart); // 新增触摸事件
+    
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchend', handleTouchEnd); // 新增触摸事件
+    
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove); // 新增触摸事件
+    
 
     // Animation
     const animate = () => {
@@ -338,13 +360,15 @@ const ThreeScene = () => {
       }
       if (renderer.domElement) {
         renderer.domElement.removeEventListener('mousedown', handleMouseDown);
+        renderer.domElement.removeEventListener('touchstart', handleTouchStart); // 移除触摸事件
       }
+
       window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchend', handleTouchEnd); // 移除触摸事件
       
-      // if (mountRef.current && renderer.domElement) {
-      //   mountRef.current.removeChild(renderer.domElement);
-      // }
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove); // 移除触摸事件
+      
 
       if (mountNode && renderer.domElement) { // 使用局部变量 mountNode
         mountNode.removeChild(renderer.domElement);
