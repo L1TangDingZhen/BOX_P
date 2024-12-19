@@ -77,7 +77,7 @@ const ThreeScene = () => {
 
 
 
-  const addTicks = (scene, axis, length) => {
+  const addTicks = useCallback((scene, axis, length) => {
     const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
     const fontLoader = new FontLoader();
     const tickInterval = 2;
@@ -119,7 +119,41 @@ const ThreeScene = () => {
         }
       );
     }
-  };
+  }, []);
+
+  // 新增一个专门创建网格的函数
+  const createGrids = useCallback((scene, length, visible = true) => {
+
+    // // 移除旧的网格组（如果存在）
+    // if (scene.gridGroup) {
+    //   scene.remove(scene.gridGroup);
+    // }
+    // 创建网格组以便统一管理
+    const gridGroup = new THREE.Group();
+    gridGroup.visible = visible;
+    scene.add(gridGroup);
+
+    // XY平面的网格（前面）
+    const gridXY = new THREE.GridHelper(length, length);
+    gridXY.rotation.x = -Math.PI / 2;
+    gridXY.position.set(length / 2, length / 2, 0);
+    gridGroup.add(gridXY);
+
+    // XZ平面的网格（底部）
+    const gridXZ = new THREE.GridHelper(length, length);
+    gridXZ.position.set(length / 2, 0, length / 2);
+    gridGroup.add(gridXZ);
+    
+    // YZ平面的网格（侧面）
+    const gridYZ = new THREE.GridHelper(length, length);
+    gridYZ.rotation.z = Math.PI / 2;
+    gridYZ.position.set(0, length / 2, length / 2);
+    gridGroup.add(gridYZ);
+
+    // 保存网格组引用到场景
+    scene.gridGroup = gridGroup;
+  }, []);
+
 
   const createThickAxis = useCallback((scene, length, onlyAxis = false) => {
     // 清空场景
@@ -230,39 +264,10 @@ const ThreeScene = () => {
     addTicks(scene, "x", length);
     addTicks(scene, "y", length);
     addTicks(scene, "z", length);
-  }, []);
+  }, [createGrids, addTicks]);
 
 
-  // 新增一个专门创建网格的函数
-  const createGrids = (scene, length, visible = true) => {
-    // 创建网格组以便统一管理
-    const gridGroup = new THREE.Group();
-    gridGroup.visible = visible;
-    scene.add(gridGroup);
-
-    // XY平面的网格（前面）
-    const gridXY = new THREE.GridHelper(length, length);
-    gridXY.rotation.x = -Math.PI / 2;
-    gridXY.position.set(length / 2, length / 2, 0);
-    gridGroup.add(gridXY);
-
-    // XZ平面的网格（底部）
-    const gridXZ = new THREE.GridHelper(length, length);
-    gridXZ.position.set(length / 2, 0, length / 2);
-    gridGroup.add(gridXZ);
-    
-    // YZ平面的网格（侧面）
-    const gridYZ = new THREE.GridHelper(length, length);
-    gridYZ.rotation.z = Math.PI / 2;
-    gridYZ.position.set(0, length / 2, length / 2);
-    gridGroup.add(gridYZ);
-
-    // 保存网格组引用到场景
-    scene.gridGroup = gridGroup;
-  };
-
-
-  const addAxisLabels = (scene, length) => {
+  const addAxisLabels = useCallback((scene, length) => {
     const loader = new FontLoader(); // 从 examples 加载的 FontLoader
     loader.load(
       'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
@@ -300,7 +305,7 @@ const ThreeScene = () => {
         scene.add(zText);
       }
     );
-  };
+  }, []);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -518,7 +523,7 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  }, [createThickAxis]);
+  }, [createThickAxis, addAxisLabels]);
 
   // 更新长方体位置和大小
   useEffect(() => {
@@ -572,22 +577,22 @@ const ThreeScene = () => {
   //   }
   // }, [isFullScreen]);
 
+  // 修改 useEffect 中的全屏处理
   useEffect(() => {
     if (!sceneRef.current || !rendererRef.current || !mountRef.current) return;
     
     const scene = sceneRef.current;
     
-    // 重新创建坐标轴和网格
-    createThickAxis(scene, 10, isFullScreen);
+    // 重新创建坐标轴和网格，注意这里把 isFullScreen 取反
+    createThickAxis(scene, 10, !isFullScreen); // 这里把 isFullScreen 取反
+    addAxisLabels(scene, 10);
     
-    // 重新设置渲染器尺寸
     handleResize();
     
-    // 确保相机朝向正确
     if (cameraRef.current) {
       cameraRef.current.lookAt(0, 0, 0);
     }
-  }, [isFullScreen, createThickAxis]); // 添加 createThickAxis 到依赖数组
+  }, [isFullScreen, createThickAxis, addAxisLabels]);
 
   
 
