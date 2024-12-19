@@ -13,7 +13,23 @@ const ThreeScene = () => {
   const [dimensions, setDimensions] = useState({ width: 1, height: 1, depth: 1 });
   const [cubes, setCubes] = useState([]); // 存储所有长方体
   const colorSet = new Set(); // 用于存储颜色，防止重复
+  const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
 
+  const handleSpaceSizeChange = (dimension, value) => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue > 0) { // 只要大于0即可
+      setSpaceSize(prev => ({
+        ...prev,
+        [dimension]: numValue
+      }));
+      
+      // 更新坐标系和网格
+      if (sceneRef.current) {
+        createThickAxis(sceneRef.current, numValue, isFullScreen);
+        addAxisLabels(sceneRef.current, numValue);
+      }
+    }
+  };
   const cameraRef = useRef(null);
   // 随机生成颜色
   const getRandomColor = () => {
@@ -189,77 +205,6 @@ const ThreeScene = () => {
 
   createGrids(scene, length, !onlyAxis);
 
-  // addTicks("x", length);
-  // addTicks("y", length);
-  // addTicks("z", length);
-
-
-  // if (!onlyAxis) {
-  //   // 添加网格和其他内容
-  //   const gridXY = new THREE.GridHelper(length, length);
-  //   gridXY.rotation.x = -Math.PI / 2;
-  //   gridXY.position.set(length / 2, length / 2, 0);
-  //   scene.add(gridXY);
-
-  //   const gridXZ = new THREE.GridHelper(length, length);
-  //   gridXZ.position.set(length / 2, 0, length / 2);
-  //   scene.add(gridXZ);
-    
-  //   const gridYZ = new THREE.GridHelper(length, length);
-  //   gridYZ.rotation.z = Math.PI / 2;
-  //   gridYZ.position.set(0, length / 2, length / 2);
-  //   scene.add(gridYZ);
-  // }
-  // 添加刻度线和数字
-  // const addTicks = (axis, length, direction) => {
-  //   const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-  //   const fontLoader = new FontLoader();
-  //   const tickInterval = 2; // 每隔2个单位添加一个刻度
-
-  //   for (let i = 0; i <= length; i += tickInterval) {
-  //     const tickGeometry = new THREE.BufferGeometry();
-  //     const tickPoints = [];
-
-  //     if (axis === "x") {
-  //       tickPoints.push(new THREE.Vector3(i, -0.1, 0));
-  //       tickPoints.push(new THREE.Vector3(i, 0.1, 0));
-  //     } else if (axis === "y") {
-  //       tickPoints.push(new THREE.Vector3(-0.1, i, 0));
-  //       tickPoints.push(new THREE.Vector3(0.1, i, 0));
-  //     } else if (axis === "z") {
-  //       tickPoints.push(new THREE.Vector3(0, -0.1, i));
-  //       tickPoints.push(new THREE.Vector3(0, 0.1, i));
-  //     }
-
-  //     tickGeometry.setFromPoints(tickPoints);
-  //     const tickLine = new THREE.Line(tickGeometry, tickMaterial);
-  //     scene.add(tickLine);
-
-  //     // 添加刻度数字
-  //     fontLoader.load(
-  //       "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
-  //       (font) => {
-  //         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-  //         const textGeometry = new TextGeometry(i.toString(), {
-  //           font: font,
-  //           size: 0.3,
-  //           height: 0.05,
-  //         });
-
-  //         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-  //         if (axis === "x") textMesh.position.set(i, -0.5, 0);
-  //         if (axis === "y") textMesh.position.set(-0.5, i, 0);
-  //         if (axis === "z") textMesh.position.set(0, -0.5, i);
-  //         scene.add(textMesh);
-  //       }
-  //     );
-  //   }
-  // };
-
-  // // 调用添加刻度
-  // addTicks("x", length);
-  // addTicks("y", length);
-  // addTicks("z", length);
     // 添加刻度
     addTicks(scene, "x", length);
     addTicks(scene, "y", length);
@@ -338,43 +283,11 @@ const ThreeScene = () => {
     renderer.setSize(width, height);
     mountNode.appendChild(renderer.domElement);
     
-    const axisLength = 10;
+    const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
     createThickAxis(scene, axisLength);
     addAxisLabels(scene, axisLength);
 
     window.addEventListener('resize', handleResize);
-
-
-    // // 创建坐标轴
-    // const axisLength = 10;
-    // // const axesHelper = new THREE.AxesHelper(axisLength);
-    // // scene.add(axesHelper);
-    // createThickAxis(scene, axisLength);
-    // addAxisLabels(scene, axisLength);
-
-
-
-
-    // // 创建第一象限的网格
-    // const size = 10;
-    // const divisions = 10;
-    
-    // // XY平面的网格（前面）
-    // const gridXY = new THREE.GridHelper(size, divisions);
-    // gridXY.rotation.x = -Math.PI / 2;  // 旋转到XY平面
-    // gridXY.position.set(size/2, size/2, 0);  // 移动到第一象限
-    // scene.add(gridXY);
-
-    // // XZ平面的网格（底部）
-    // const gridXZ = new THREE.GridHelper(size, divisions);
-    // gridXZ.position.set(size/2, 0, size/2);  // 移动到第一象限
-    // scene.add(gridXZ);
-
-    // // YZ平面的网格（侧面）
-    // const gridYZ = new THREE.GridHelper(size, divisions);
-    // gridYZ.rotation.z = Math.PI / 2; // 旋转到YZ平面
-    // gridYZ.position.set(0, size / 2, size / 2); // 移动到第一象限
-    // scene.add(gridYZ);
 
     // 创建光源组
     const lightGroup = new THREE.Group();
@@ -523,7 +436,7 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  }, [createThickAxis, addAxisLabels]);
+  }, [createThickAxis, addAxisLabels, spaceSize]);
 
   // 更新长方体位置和大小
   useEffect(() => {
@@ -552,56 +465,116 @@ const ThreeScene = () => {
   };
 
   const handleDimensionChange = (dimension, value) => {
-    const numValue = parseFloat(value) || 0;
-    if (numValue > 0) {
+    // 允许空值
+    if (value === '') {
       setDimensions(prev => ({
         ...prev,
-        [dimension]: numValue
+        [dimension]: value
       }));
+      return;
     }
+  
+    // 允许输入中间过程，比如 "0." 或者 "."
+    if (value === '.' || value === '0.' || value.startsWith('0.')) {
+      setDimensions(prev => ({
+        ...prev,
+        [dimension]: value
+      }));
+      return;
+    }
+  
+    // 验证数字格式，允许 0.x 格式
+    if (!/^[0-9]*\.?[0-9]*$/.test(value)) {
+      return;
+    }
+  
+    const numValue = parseFloat(value);
+    
+    // 检查数值范围（只在有实际数值时检查）
+    if (!isNaN(numValue)) {
+      // 检查是否超过空间大小
+      if (dimension === 'width' && numValue > spaceSize.x) return;
+      if (dimension === 'height' && numValue > spaceSize.y) return;
+      if (dimension === 'depth' && numValue > spaceSize.z) return;
+  
+      if (numValue <= 0) return;
+    }
+  
+    // 更新尺寸，保留原始输入值
+    setDimensions(prev => ({
+      ...prev,
+      [dimension]: value
+    }));
   };
 
-  // useEffect(() => {
-  //   if (!sceneRef.current || !rendererRef.current || !mountRef.current) return;
-    
-  //   if (isFullScreen) {
-  //     createThickAxis(sceneRef.current, 10, true);
-  //   } else {
-  //     createThickAxis(sceneRef.current, 10, false);
-  //   }
-    
-  //   // 重新设置渲染器尺寸
-  //   handleResize();
-  //   if (cameraRef.current) {
-  //     cameraRef.current.lookAt(0, 0, 0);
-  //   }
-  // }, [isFullScreen]);
 
-  // 修改 useEffect 中的全屏处理
   useEffect(() => {
     if (!sceneRef.current || !rendererRef.current || !mountRef.current) return;
     
     const scene = sceneRef.current;
     
+    // 使用当前设定的空间大小，而不是固定的10
+    const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
     // 重新创建坐标轴和网格，注意这里把 isFullScreen 取反
-    createThickAxis(scene, 10, !isFullScreen); // 这里把 isFullScreen 取反
-    addAxisLabels(scene, 10);
+    createThickAxis(scene, axisLength, !isFullScreen);
+    addAxisLabels(scene, axisLength);
     
     handleResize();
     
     if (cameraRef.current) {
       cameraRef.current.lookAt(0, 0, 0);
     }
-  }, [isFullScreen, createThickAxis, addAxisLabels]);
-
+  }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize]); // 添加 spaceSize 到依赖数组
   
 
   return (
+    
     <div className="w-full h-full flex">
       {/* 左侧控制面板 */}
       <div className="w-64 p-4 bg-gray-100">
         <h2 className="text-lg font-bold mb-4">参数控制</h2>
         <div className="space-y-6">
+          {/* 在这里添加空间尺寸控制 */}
+          <div>
+            <h3 className="text-md font-semibold mb-2">空间尺寸</h3>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-sm font-medium">X轴长度</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={spaceSize.x}
+                  onChange={(e) => handleSpaceSizeChange('x', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Y轴长度</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={spaceSize.y}
+                  onChange={(e) => handleSpaceSizeChange('y', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Z轴长度</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={spaceSize.z}
+                  onChange={(e) => handleSpaceSizeChange('z', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+
           {/* 起始位置控制 */}
           <div>
             <h3 className="text-md font-semibold mb-2">起始位置</h3>
@@ -655,7 +628,8 @@ const ThreeScene = () => {
                 <input
                   type="number"
                   min="0.1"
-                  max="10"
+                  max={spaceSize.x}
+                  step="0.1"
                   value={dimensions.width}
                   onChange={(e) => handleDimensionChange('width', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
@@ -667,7 +641,8 @@ const ThreeScene = () => {
                 <input
                   type="number"
                   min="0.1"
-                  max="10"
+                  max={spaceSize.y}
+                  step="0.1"
                   value={dimensions.height}
                   onChange={(e) => handleDimensionChange('height', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
@@ -679,7 +654,8 @@ const ThreeScene = () => {
                 <input
                   type="number"
                   min="0.1"
-                  max="10"
+                  max={spaceSize.z}
+                  step="0.1"
                   value={dimensions.depth}
                   onChange={(e) => handleDimensionChange('depth', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
