@@ -24,13 +24,15 @@ const ThreeScene = () => {
         [dimension]: numValue
       }));
       
-      // 更新坐标系和网格
+      // 更新坐标系和网格，使用新的尺寸更新
       if (sceneRef.current) {
-        createThickAxis(sceneRef.current, numValue, isFullScreen);
-        addAxisLabels(sceneRef.current, numValue);
+        createThickAxis(sceneRef.current, spaceSize, isFullScreen);
+        addAxisLabels(sceneRef.current, spaceSize);
       }
     }
   };
+
+
   const cameraRef = useRef(null);
   // 随机生成颜色
   const getRandomColor = () => {
@@ -68,6 +70,36 @@ const ThreeScene = () => {
         cameraRef.current.updateProjectionMatrix();
       }
     }
+  };
+
+
+  // 添加滚轮事件处理函数
+  const handleWheel = (e) => {
+    const camera = cameraRef.current;
+    if (!camera) return;
+
+    const zoomSpeed = 0.1;
+    const direction = e.deltaY > 0 ? 1 : -1;
+
+    // 计算当前相机到原点的距离
+    const radius = Math.sqrt(
+      camera.position.x ** 2 + 
+      camera.position.y ** 2 + 
+      camera.position.z ** 2
+    );
+
+    // 计算新的半径（缩放后的距离）
+    const newRadius = radius * (1 + direction * zoomSpeed);
+
+    // 限制缩放范围
+    const minRadius = 5;  // 最小距离
+    const maxRadius = 50; // 最大距离
+    if (newRadius < minRadius || newRadius > maxRadius) return;
+
+    // 根据新半径更新相机位置
+    const scale = newRadius / radius;
+    camera.position.multiplyScalar(scale);
+    camera.lookAt(0, 0, 0);
   };
 
   const isMouseDown = useRef(false);
@@ -150,36 +182,37 @@ const ThreeScene = () => {
     }
   }, []);
 
-  // 新增一个专门创建网格的函数
-  const createGrids = useCallback((scene, length, visible = true) => {
-
-    // // 移除旧的网格组（如果存在）
-    // if (scene.gridGroup) {
-    //   scene.remove(scene.gridGroup);
-    // }
-    // 创建网格组以便统一管理
+  const createGrids = useCallback((scene, spaceSize, visible = true) => {
     const gridGroup = new THREE.Group();
     gridGroup.visible = visible;
     scene.add(gridGroup);
-
+  
     // XY平面的网格（前面）
-    const gridXY = new THREE.GridHelper(length, length);
+    const gridXY = new THREE.GridHelper(spaceSize.x, spaceSize.x);
+    // 旋转到XY平面并位置调整
     gridXY.rotation.x = -Math.PI / 2;
-    gridXY.position.set(length / 2, length / 2, 0);
+    gridXY.position.set(spaceSize.x / 2, spaceSize.y / 2, 0);
+    // 调整Y轴缩放以匹配高度
+    gridXY.scale.y = spaceSize.y / spaceSize.x;
     gridGroup.add(gridXY);
-
+  
     // XZ平面的网格（底部）
-    const gridXZ = new THREE.GridHelper(length, length);
-    gridXZ.position.set(length / 2, 0, length / 2);
+    const gridXZ = new THREE.GridHelper(spaceSize.x, spaceSize.x);
+    // 位置调整到底部
+    gridXZ.position.set(spaceSize.x / 2, 0, spaceSize.z / 2);
+    // 调整Z轴缩放以匹配深度
+    gridXZ.scale.z = spaceSize.z / spaceSize.x;
     gridGroup.add(gridXZ);
     
     // YZ平面的网格（侧面）
-    const gridYZ = new THREE.GridHelper(length, length);
+    const gridYZ = new THREE.GridHelper(spaceSize.y, spaceSize.y);
+    // 旋转到YZ平面并位置调整
     gridYZ.rotation.z = Math.PI / 2;
-    gridYZ.position.set(0, length / 2, length / 2);
+    gridYZ.position.set(0, spaceSize.y / 2, spaceSize.z / 2);
+    // 调整Z轴缩放以匹配深度
+    gridYZ.scale.z = spaceSize.z / spaceSize.y;
     gridGroup.add(gridYZ);
-
-    // 保存网格组引用到场景
+  
     scene.gridGroup = gridGroup;
   }, []);
 
@@ -197,32 +230,32 @@ const ThreeScene = () => {
   const axisMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // 黑色轴线
 
   // X轴
-  const xGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
+  const xGeometry = new THREE.CylinderGeometry(0.05, 0.05, spaceSize.x, 16);
   const xAxis = new THREE.Mesh(xGeometry, axisMaterial);
   xAxis.rotation.z = -Math.PI / 2;
-  xAxis.position.set(length / 2, 0, 0);
+  xAxis.position.set(spaceSize.x / 2, 0, 0);
   scene.add(xAxis);
 
   // Y轴
-  const yGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
+  const yGeometry = new THREE.CylinderGeometry(0.05, 0.05, spaceSize.y, 16);
   const yAxis = new THREE.Mesh(yGeometry, axisMaterial);
-  yAxis.position.set(0, length / 2, 0);
+  yAxis.position.set(0, spaceSize.y / 2, 0);
   scene.add(yAxis);
 
   // Z轴
-  const zGeometry = new THREE.CylinderGeometry(0.05, 0.05, length, 16);
+  const zGeometry = new THREE.CylinderGeometry(0.05, 0.05, spaceSize.z, 16);
   const zAxis = new THREE.Mesh(zGeometry, axisMaterial);
   zAxis.rotation.x = -Math.PI / 2;
-  zAxis.position.set(0, 0, length / 2);
+  zAxis.position.set(0, 0, spaceSize.z / 2);
   scene.add(zAxis);
 
-  createGrids(scene, length, !onlyAxis);
+  createGrids(scene, spaceSize, !onlyAxis);
 
     // 添加刻度
-    addTicks(scene, "x", length);
-    addTicks(scene, "y", length);
-    addTicks(scene, "z", length);
-  }, [createGrids, addTicks]);
+    addTicks(scene, "x", spaceSize.x);
+    addTicks(scene, "y", spaceSize.y);
+    addTicks(scene, "z", spaceSize.z);
+  }, [createGrids, addTicks, spaceSize]);
 
 
   const addAxisLabels = useCallback((scene, length) => {
@@ -420,6 +453,14 @@ const ThreeScene = () => {
     };
     animate();
 
+
+    // 添加滚轮事件监听
+    const handleWheelWrapper = (e) => {
+      e.preventDefault();
+      handleWheel(e);
+    };
+    mountRef.current.addEventListener('wheel', handleWheelWrapper, { passive: false });
+
     // Cleanup
     return () => {
       if (frameIdRef.current) {
@@ -435,6 +476,8 @@ const ThreeScene = () => {
       
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove); // 移除触摸事件
+      // mountRef.current?.removeEventListener('wheel', handleWheelWrapper);
+
       
 
       if (mountNode && renderer.domElement) { // 使用局部变量 mountNode
@@ -469,6 +512,12 @@ const ThreeScene = () => {
 
   const handleCoordinateChange = (axis, value) => {
     const numValue = parseFloat(value) || 0;
+    
+    // 检查是否超出空间大小
+    if (axis === 'x' && numValue + dimensions.width > spaceSize.x) return;
+    if (axis === 'y' && numValue + dimensions.height > spaceSize.y) return;
+    if (axis === 'z' && numValue + dimensions.depth > spaceSize.z) return;
+  
     if (numValue >= 0) {
       setCoordinates(prev => ({
         ...prev,
@@ -545,18 +594,16 @@ const ThreeScene = () => {
     
     const scene = sceneRef.current;
     
-    // 使用当前设定的空间大小，而不是固定的10
-    const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
-    // 重新创建坐标轴和网格，注意这里把 isFullScreen 取反
-    createThickAxis(scene, axisLength, !isFullScreen);
-    addAxisLabels(scene, axisLength);
+    // 使用空间实际尺寸而不是最大值
+    createThickAxis(scene, spaceSize, !isFullScreen);
+    addAxisLabels(scene, spaceSize);
     
     handleResize();
     
     if (cameraRef.current) {
       cameraRef.current.lookAt(0, 0, 0);
     }
-  }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize]); // 添加 spaceSize 到依赖数组
+  }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize]);
   
 
   return (

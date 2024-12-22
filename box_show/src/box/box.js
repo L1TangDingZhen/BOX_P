@@ -32,8 +32,8 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>x, y, z 定义问题</li>
           <li style={styles.strikethrough}>后端是否返回起始坐标</li>
           <li style={styles.strikethrough}>是否设置起始空间大小</li>
-          <li>移动端无法全屏</li>
-          <li>全屏按钮需要优化位置</li>
+          <li style={styles.strikethrough}>移动端无法全屏</li>
+          <li style={styles.strikethrough}>全屏按钮需要优化位置</li>
           <li>长方体尺寸有验证是否冲突，！但起始位置没有验证（没有验证加入长方体后位置是否超出空间大小</li>
           <li>超大数值会卡住</li>
 
@@ -43,7 +43,7 @@ const IssuesAndTodos = () => {
       <div style={styles.section}>
         <h2 style={styles.subHeader}>待商讨</h2>
         <ul style={styles.list}>
-          <li>空间的xyz是否取最大值当作数值或者任由输入</li>
+          <li style={styles.strikethrough}>空间的xyz是否取最大值当作数值或者任由输入</li>
         </ul>
       </div>
 
