@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
+import { Maximize2, X, Minimize2 } from 'lucide-react';
 
 const ThreeScene = () => {
   const mountRef = useRef(null);
@@ -78,14 +79,26 @@ const ThreeScene = () => {
   // 修改 toggleFullScreen 函数
   const toggleFullScreen = async () => {
     setIsFullScreen((prev) => !prev);
-
+  
     try {
       if (!isFullScreen) {
-        await mountRef.current.requestFullscreen();
+        if (mountRef.current.requestFullscreen) {
+          await mountRef.current.requestFullscreen();
+        } else if (mountRef.current.webkitRequestFullscreen) {
+          await mountRef.current.webkitRequestFullscreen();
+        } else if (mountRef.current.msRequestFullscreen) {
+          await mountRef.current.msRequestFullscreen();
+        }
       } else {
-        await document.exitFullscreen();
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
       }
-      handleResize(); // 切换全屏后立即调整尺寸
+      handleResize();
     } catch (err) {
       console.error('Error toggling fullscreen:', err);
     }
@@ -713,10 +726,16 @@ const ThreeScene = () => {
       <div className="flex-1 relative">
         <button
           onClick={toggleFullScreen}
-          className="absolute top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded z-50"
-        >
-          {isFullScreen ? '退出全屏' : '全屏显示坐标系'}
+          className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
+          >
+          {isFullScreen ? (<Minimize2 className="w-6 h-6" />) : (<Maximize2 className="w-6 h-6" />)}
         </button>
+        {/* exit */}
+        {isFullScreen && (
+          <button onClick = {toggleFullScreen} className="absolute top-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all">
+            <X className="w-6 h-6" />
+          </button>
+        )}
         
         <div 
           ref={mountRef} 
