@@ -110,14 +110,14 @@ const ThreeScene = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const toggleFullScreen = async () => {
-    // 检查是否是 iPhone 设备（不包括 iPad）
-    const isIPhone = /iPhone/.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
-    
     setIsFullScreen((prev) => !prev);
   
+    // 检查是否是 iOS 设备
+    const isIOS = /iPhone/.test(navigator.userAgent); // 只针对 iPhone，不包括 iPad
+    
     try {
       if (!isFullScreen) {
-        if (isIPhone) {
+        if (isIOS) {
           // iPhone 设备使用特殊处理
           if (mountRef.current) {
             mountRef.current.style.position = 'fixed';
@@ -126,29 +126,31 @@ const ThreeScene = () => {
             mountRef.current.style.width = '100vw';
             mountRef.current.style.height = '100vh';
             mountRef.current.style.zIndex = '9999';
-            
-            // 添加滑动退出功能
-            let startY = 0;
-            const handleTouchStartForExit = (e) => {
-              startY = e.touches[0].clientY;
+  
+            // 添加滑动退出的处理
+            let touchStartY = 0;
+            const handleFullscreenTouchStart = (e) => {
+              touchStartY = e.touches[0].clientY;
             };
-            
-            const handleTouchMoveForExit = (e) => {
-              const deltaY = e.touches[0].clientY - startY;
-              // 如果向下滑动超过100px，退出全屏
+  
+            const handleFullscreenTouchMove = (e) => {
+              const touchY = e.touches[0].clientY;
+              const deltaY = touchY - touchStartY;
+  
+              // 如果向下滑动超过 100px，退出全屏
               if (deltaY > 100) {
                 toggleFullScreen();
-                // 移除事件监听器
-                mountRef.current.removeEventListener('touchstart', handleTouchStartForExit);
-                mountRef.current.removeEventListener('touchmove', handleTouchMoveForExit);
+                // 清除事件监听器
+                mountRef.current.removeEventListener('touchstart', handleFullscreenTouchStart);
+                mountRef.current.removeEventListener('touchmove', handleFullscreenTouchMove);
               }
             };
-            
-            mountRef.current.addEventListener('touchstart', handleTouchStartForExit);
-            mountRef.current.addEventListener('touchmove', handleTouchMoveForExit);
+  
+            mountRef.current.addEventListener('touchstart', handleFullscreenTouchStart);
+            mountRef.current.addEventListener('touchmove', handleFullscreenTouchMove);
           }
         } else {
-          // iPad 和其他设备使用标准全屏 API
+          // 其他设备使用标准全屏 API
           if (mountRef.current.requestFullscreen) {
             await mountRef.current.requestFullscreen();
           } else if (mountRef.current.webkitRequestFullscreen) {
@@ -156,7 +158,7 @@ const ThreeScene = () => {
           }
         }
       } else {
-        if (isIPhone) {
+        if (isIOS) {
           // iPhone 设备退出全屏
           if (mountRef.current) {
             mountRef.current.style.position = '';
@@ -167,7 +169,7 @@ const ThreeScene = () => {
             mountRef.current.style.zIndex = '';
           }
         } else {
-          // iPad 和其他设备退出全屏
+          // 其他设备退出全屏
           if (document.exitFullscreen) {
             await document.exitFullscreen();
           } else if (document.webkitExitFullscreen) {
