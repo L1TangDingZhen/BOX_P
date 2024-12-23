@@ -32,7 +32,7 @@ const ThreeScene = () => {
     }
   };
 
-  const isIPhone = /iPhone/.test(navigator.userAgent);
+  // const isIPhone = /iPhone/.test(navigator.userAgent);
 
   const cameraRef = useRef(null);
   // 随机生成颜色
@@ -110,46 +110,42 @@ const ThreeScene = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const toggleFullScreen = async () => {
+    // 检查是否是 iPhone 设备（不包括 iPad）
+    const isIPhone = /iPhone/.test(navigator.userAgent) && !/iPad/.test(navigator.userAgent);
+    
     setIsFullScreen((prev) => !prev);
   
     try {
       if (!isFullScreen) {
         if (isIPhone) {
-          // iPhone 特殊处理
+          // iPhone 设备使用特殊处理
           if (mountRef.current) {
             mountRef.current.style.position = 'fixed';
-            mountRef.current.style.width = '100vw';
-            mountRef.current.style.height = '100vh';
             mountRef.current.style.top = '0';
             mountRef.current.style.left = '0';
+            mountRef.current.style.width = '100vw';
+            mountRef.current.style.height = '100vh';
             mountRef.current.style.zIndex = '9999';
-            document.body.style.overflow = 'hidden'; // 防止背景滚动
             
-            // 添加顶部下滑手势区域
-            const gestureArea = document.createElement('div');
-            gestureArea.id = 'gesture-area';
-            gestureArea.style.cssText = `
-              position: fixed;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 20px;
-              z-index: 10000;
-            `;
-            document.body.appendChild(gestureArea);
+            // 添加滑动退出功能
+            let startY = 0;
+            const handleTouchStartForExit = (e) => {
+              startY = e.touches[0].clientY;
+            };
             
-            // 添加手势监听
-            let touchStartY = 0;
-            gestureArea.addEventListener('touchstart', (e) => {
-              touchStartY = e.touches[0].clientY;
-            });
-            
-            gestureArea.addEventListener('touchmove', (e) => {
-              const deltaY = e.touches[0].clientY - touchStartY;
-              if (deltaY > 50) { // 如果下滑距离超过50px
-                toggleFullScreen(); // 退出全屏
+            const handleTouchMoveForExit = (e) => {
+              const deltaY = e.touches[0].clientY - startY;
+              // 如果向下滑动超过100px，退出全屏
+              if (deltaY > 100) {
+                toggleFullScreen();
+                // 移除事件监听器
+                mountRef.current.removeEventListener('touchstart', handleTouchStartForExit);
+                mountRef.current.removeEventListener('touchmove', handleTouchMoveForExit);
               }
-            });
+            };
+            
+            mountRef.current.addEventListener('touchstart', handleTouchStartForExit);
+            mountRef.current.addEventListener('touchmove', handleTouchMoveForExit);
           }
         } else {
           // iPad 和其他设备使用标准全屏 API
@@ -161,21 +157,14 @@ const ThreeScene = () => {
         }
       } else {
         if (isIPhone) {
-          // iPhone 退出全屏
+          // iPhone 设备退出全屏
           if (mountRef.current) {
             mountRef.current.style.position = '';
-            mountRef.current.style.width = '';
-            mountRef.current.style.height = '';
             mountRef.current.style.top = '';
             mountRef.current.style.left = '';
+            mountRef.current.style.width = '';
+            mountRef.current.style.height = '';
             mountRef.current.style.zIndex = '';
-            document.body.style.overflow = '';
-            
-            // 移除手势区域
-            const gestureArea = document.getElementById('gesture-area');
-            if (gestureArea) {
-              gestureArea.remove();
-            }
           }
         } else {
           // iPad 和其他设备退出全屏
@@ -930,12 +919,7 @@ const ThreeScene = () => {
       {/* 右侧Three.js渲染区域 */}
       <div className="flex-1 relative">
         
-        {/* 这里添加退出提示 */}
-        {isFullScreen && isIPhone && (
-          <div className="absolute top-0 left-0 w-full text-center p-1 text-sm text-white bg-black bg-opacity-50">
-            下滑退出全屏
-          </div>
-        )}
+
         <button
           onClick={toggleFullScreen}
           className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
