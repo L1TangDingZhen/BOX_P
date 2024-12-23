@@ -32,6 +32,7 @@ const ThreeScene = () => {
     }
   };
 
+  const isIPhone = /iPhone/.test(navigator.userAgent);
 
   const cameraRef = useRef(null);
   // 随机生成颜色
@@ -111,50 +112,77 @@ const ThreeScene = () => {
   const toggleFullScreen = async () => {
     setIsFullScreen((prev) => !prev);
   
-    // 检查是否是 iOS 设备
-    const isIOS = /iPhone|iPod/.test(navigator.userAgent);
-    
     try {
       if (!isFullScreen) {
-        if (isIOS) {
-          // iOS 设备使用特殊处理
+        if (isIPhone) {
+          // iPhone 特殊处理
           if (mountRef.current) {
             mountRef.current.style.position = 'fixed';
-            mountRef.current.style.top = '0';
-            mountRef.current.style.left = '0';
             mountRef.current.style.width = '100vw';
             mountRef.current.style.height = '100vh';
+            mountRef.current.style.top = '0';
+            mountRef.current.style.left = '0';
             mountRef.current.style.zIndex = '9999';
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+            
+            // 添加顶部下滑手势区域
+            const gestureArea = document.createElement('div');
+            gestureArea.id = 'gesture-area';
+            gestureArea.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 20px;
+              z-index: 10000;
+            `;
+            document.body.appendChild(gestureArea);
+            
+            // 添加手势监听
+            let touchStartY = 0;
+            gestureArea.addEventListener('touchstart', (e) => {
+              touchStartY = e.touches[0].clientY;
+            });
+            
+            gestureArea.addEventListener('touchmove', (e) => {
+              const deltaY = e.touches[0].clientY - touchStartY;
+              if (deltaY > 50) { // 如果下滑距离超过50px
+                toggleFullScreen(); // 退出全屏
+              }
+            });
           }
         } else {
-          // 其他设备使用标准全屏 API
+          // iPad 和其他设备使用标准全屏 API
           if (mountRef.current.requestFullscreen) {
             await mountRef.current.requestFullscreen();
           } else if (mountRef.current.webkitRequestFullscreen) {
             await mountRef.current.webkitRequestFullscreen();
-          } else if (mountRef.current.msRequestFullscreen) {
-            await mountRef.current.msRequestFullscreen();
           }
         }
       } else {
-        if (isIOS) {
-          // iOS 设备退出全屏
+        if (isIPhone) {
+          // iPhone 退出全屏
           if (mountRef.current) {
             mountRef.current.style.position = '';
-            mountRef.current.style.top = '';
-            mountRef.current.style.left = '';
             mountRef.current.style.width = '';
             mountRef.current.style.height = '';
+            mountRef.current.style.top = '';
+            mountRef.current.style.left = '';
             mountRef.current.style.zIndex = '';
+            document.body.style.overflow = '';
+            
+            // 移除手势区域
+            const gestureArea = document.getElementById('gesture-area');
+            if (gestureArea) {
+              gestureArea.remove();
+            }
           }
         } else {
-          // 其他设备退出全屏
+          // iPad 和其他设备退出全屏
           if (document.exitFullscreen) {
             await document.exitFullscreen();
           } else if (document.webkitExitFullscreen) {
             await document.webkitExitFullscreen();
-          } else if (document.msExitFullscreen) {
-            await document.msExitFullscreen();
           }
         }
       }
@@ -901,6 +929,13 @@ const ThreeScene = () => {
   
       {/* 右侧Three.js渲染区域 */}
       <div className="flex-1 relative">
+        
+        {/* 这里添加退出提示 */}
+        {isFullScreen && isIPhone && (
+          <div className="absolute top-0 left-0 w-full text-center p-1 text-sm text-white bg-black bg-opacity-50">
+            下滑退出全屏
+          </div>
+        )}
         <button
           onClick={toggleFullScreen}
           className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
