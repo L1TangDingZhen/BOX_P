@@ -428,8 +428,8 @@ const ThreeScene = () => {
       const deltaX = e.clientX - mousePosition.current.x;
       const deltaY = e.clientY - mousePosition.current.y;
 
-      cameraRotation.current.x += deltaY * 0.01;
-      cameraRotation.current.y += deltaX * 0.01;
+      cameraRotation.current.x += deltaY * 0.02;
+      cameraRotation.current.y += deltaX * 0.02;
 
       const radius = Math.sqrt(
         camera.position.x ** 2 + 
