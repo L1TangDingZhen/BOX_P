@@ -108,26 +108,54 @@ const ThreeScene = () => {
 
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // 修改 toggleFullScreen 函数
   const toggleFullScreen = async () => {
     setIsFullScreen((prev) => !prev);
   
+    // 检查是否是 iOS 设备
+    const isIOS = /iPhone|iPod/.test(navigator.userAgent);
+    
     try {
       if (!isFullScreen) {
-        if (mountRef.current.requestFullscreen) {
-          await mountRef.current.requestFullscreen();
-        } else if (mountRef.current.webkitRequestFullscreen) {
-          await mountRef.current.webkitRequestFullscreen();
-        } else if (mountRef.current.msRequestFullscreen) {
-          await mountRef.current.msRequestFullscreen();
+        if (isIOS) {
+          // iOS 设备使用特殊处理
+          if (mountRef.current) {
+            mountRef.current.style.position = 'fixed';
+            mountRef.current.style.top = '0';
+            mountRef.current.style.left = '0';
+            mountRef.current.style.width = '100vw';
+            mountRef.current.style.height = '100vh';
+            mountRef.current.style.zIndex = '9999';
+          }
+        } else {
+          // 其他设备使用标准全屏 API
+          if (mountRef.current.requestFullscreen) {
+            await mountRef.current.requestFullscreen();
+          } else if (mountRef.current.webkitRequestFullscreen) {
+            await mountRef.current.webkitRequestFullscreen();
+          } else if (mountRef.current.msRequestFullscreen) {
+            await mountRef.current.msRequestFullscreen();
+          }
         }
       } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          await document.msExitFullscreen();
+        if (isIOS) {
+          // iOS 设备退出全屏
+          if (mountRef.current) {
+            mountRef.current.style.position = '';
+            mountRef.current.style.top = '';
+            mountRef.current.style.left = '';
+            mountRef.current.style.width = '';
+            mountRef.current.style.height = '';
+            mountRef.current.style.zIndex = '';
+          }
+        } else {
+          // 其他设备退出全屏
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
         }
       }
       handleResize();
@@ -409,9 +437,9 @@ const ThreeScene = () => {
         camera.position.z ** 2
       );
 
-      camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+      camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
       camera.position.y = radius * Math.sin(cameraRotation.current.x);
-      camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+      camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
 
       camera.lookAt(0, 0, 0);
       
@@ -420,15 +448,6 @@ const ThreeScene = () => {
         y: e.clientY
       };
     };
-
-    // const handleTouchStart = (e) => {
-    //   isMouseDown.current = true;
-    //   // 使用 `touches[0]` 获取第一个触摸点
-    //   mousePosition.current = {
-    //     x: e.touches[0].clientX,
-    //     y: e.touches[0].clientY,
-    //   };
-    // };
 
 
     // 修改 touchstart 事件处理
@@ -461,33 +480,6 @@ const ThreeScene = () => {
       isMouseDown.current = false;
     };
     
-    // const handleTouchMove = (e) => {
-    //   if (!isMouseDown.current) return;
-    
-    //   // 触摸点变化
-    //   const deltaX = e.touches[0].clientX - mousePosition.current.x;
-    //   const deltaY = e.touches[0].clientY - mousePosition.current.y;
-    
-    //   cameraRotation.current.x += deltaY * 0.01;
-    //   cameraRotation.current.y += deltaX * 0.01;
-    
-    //   const radius = Math.sqrt(
-    //     camera.position.x ** 2 +
-    //     camera.position.y ** 2 +
-    //     camera.position.z ** 2
-    //   );
-    
-    //   camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-    //   camera.position.y = radius * Math.sin(cameraRotation.current.x);
-    //   camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-    
-    //   camera.lookAt(0, 0, 0);
-    
-    //   mousePosition.current = {
-    //     x: e.touches[0].clientX,
-    //     y: e.touches[0].clientY,
-    //   };
-    // };
 
 
       // 修改 touchmove 事件处理
@@ -526,13 +518,15 @@ const ThreeScene = () => {
         const deltaX = e.touches[0].clientX - mousePosition.current.x;
         const deltaY = e.touches[0].clientY - mousePosition.current.y;
 
-        cameraRotation.current.x += deltaY * 0.01;
-        cameraRotation.current.y += deltaX * 0.01;
+
+        // 灵敏度调整
+        cameraRotation.current.x += deltaY * 0.02;
+        cameraRotation.current.y += deltaX * 0.02;
 
         const radius = camera.position.length();
-        camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+        camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
         camera.position.y = radius * Math.sin(cameraRotation.current.x);
-        camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+        camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
         
         camera.lookAt(0, 0, 0);
         
