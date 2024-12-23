@@ -428,8 +428,8 @@ const ThreeScene = () => {
       const deltaX = e.clientX - mousePosition.current.x;
       const deltaY = e.clientY - mousePosition.current.y;
 
-      cameraRotation.current.x += deltaY * 0.02;
-      cameraRotation.current.y += deltaX * 0.02;
+      cameraRotation.current.x += deltaY * 0.04;
+      cameraRotation.current.y += deltaX * 0.04;
 
       const radius = Math.sqrt(
         camera.position.x ** 2 + 
@@ -520,8 +520,8 @@ const ThreeScene = () => {
 
 
         // 灵敏度调整
-        cameraRotation.current.x += deltaY * 0.02;
-        cameraRotation.current.y += deltaX * 0.02;
+        cameraRotation.current.x += deltaY * 0.04;
+        cameraRotation.current.y += deltaX * 0.04;
 
         const radius = camera.position.length();
         camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
