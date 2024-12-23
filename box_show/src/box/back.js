@@ -428,8 +428,8 @@ const ThreeScene = () => {
       const deltaX = e.clientX - mousePosition.current.x;
       const deltaY = e.clientY - mousePosition.current.y;
 
-      cameraRotation.current.x += deltaY * 0.04;
-      cameraRotation.current.y += deltaX * 0.04;
+      cameraRotation.current.x += deltaY * 0.01;
+      cameraRotation.current.y += deltaX * 0.01;
 
       const radius = Math.sqrt(
         camera.position.x ** 2 + 
@@ -498,7 +498,7 @@ const ThreeScene = () => {
 
         if (mousePosition.current.initialPinchDistance) {
           const scale = currentDistance / mousePosition.current.initialPinchDistance;
-          const zoomSpeed = 0.1;
+          const zoomSpeed = 0.2;
           const radius = camera.position.length();
           const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
 
@@ -520,8 +520,8 @@ const ThreeScene = () => {
 
 
         // 灵敏度调整
-        cameraRotation.current.x += deltaY * 0.04;
-        cameraRotation.current.y += deltaX * 0.04;
+        cameraRotation.current.x += deltaY * 0.01;
+        cameraRotation.current.y += deltaX * 0.01;
 
         const radius = camera.position.length();
         camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
