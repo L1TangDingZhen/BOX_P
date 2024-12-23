@@ -29,6 +29,11 @@ const ThreeScene = () => {
       //   createThickAxis(sceneRef.current, spaceSize, isFullScreen);
       //   addAxisLabels(sceneRef.current, spaceSize);
       // }
+      if (sceneRef.current) {
+        const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+        createThickAxis(sceneRef.current, axisLength, false);
+        addAxisLabels(sceneRef.current, axisLength);
+      }
     }
   };
 
@@ -110,53 +115,77 @@ const ThreeScene = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const toggleFullScreen = async () => {
-    const isIOS = /iPhone/.test(navigator.userAgent);
+    setIsFullScreen((prev) => !prev);
+  
+    // 检查是否是 iOS 设备
+    const isIOS = /iPhone/.test(navigator.userAgent); // 只针对 iPhone，不包括 iPad
     
-    if (!isFullScreen) {
-      if (isIOS) {
-        // iPhone 设备进入全屏
-        if (mountRef.current) {
-          document.documentElement.style.overflow = 'hidden'; // 禁止页面滚动
-          mountRef.current.style.position = 'fixed';
-          mountRef.current.style.width = '100vw';
-          mountRef.current.style.height = '100vh';
-          mountRef.current.style.top = '0';
-          mountRef.current.style.left = '0';
-          mountRef.current.style.zIndex = '9999';
-          mountRef.current.style.backgroundColor = '#f0f0f0';
+    try {
+      if (!isFullScreen) {
+        if (isIOS) {
+          // iPhone 设备使用特殊处理
+          if (mountRef.current) {
+            mountRef.current.style.position = 'fixed';
+            mountRef.current.style.top = '0';
+            mountRef.current.style.left = '0';
+            mountRef.current.style.width = '100vw';
+            mountRef.current.style.height = '100vh';
+            mountRef.current.style.zIndex = '9999';
+  
+            // 添加滑动退出的处理
+            let touchStartY = 0;
+            const handleFullscreenTouchStart = (e) => {
+              touchStartY = e.touches[0].clientY;
+            };
+  
+            const handleFullscreenTouchMove = (e) => {
+              const touchY = e.touches[0].clientY;
+              const deltaY = touchY - touchStartY;
+  
+              // 如果向下滑动超过 100px，退出全屏
+              if (deltaY > 100) {
+                toggleFullScreen();
+                // 清除事件监听器
+                mountRef.current.removeEventListener('touchstart', handleFullscreenTouchStart);
+                mountRef.current.removeEventListener('touchmove', handleFullscreenTouchMove);
+              }
+            };
+  
+            mountRef.current.addEventListener('touchstart', handleFullscreenTouchStart);
+            mountRef.current.addEventListener('touchmove', handleFullscreenTouchMove);
+          }
+        } else {
+          // 其他设备使用标准全屏 API
+          if (mountRef.current.requestFullscreen) {
+            await mountRef.current.requestFullscreen();
+          } else if (mountRef.current.webkitRequestFullscreen) {
+            await mountRef.current.webkitRequestFullscreen();
+          }
         }
       } else {
-        // 其他设备使用标准全屏 API
-        if (mountRef.current.requestFullscreen) {
-          await mountRef.current.requestFullscreen();
-        } else if (mountRef.current.webkitRequestFullscreen) {
-          await mountRef.current.webkitRequestFullscreen();
+        if (isIOS) {
+          // iPhone 设备退出全屏
+          if (mountRef.current) {
+            mountRef.current.style.position = '';
+            mountRef.current.style.top = '';
+            mountRef.current.style.left = '';
+            mountRef.current.style.width = '';
+            mountRef.current.style.height = '';
+            mountRef.current.style.zIndex = '';
+          }
+        } else {
+          // 其他设备退出全屏
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          }
         }
       }
-    } else {
-      if (isIOS) {
-        // iPhone 设备退出全屏
-        if (mountRef.current) {
-          document.documentElement.style.overflow = ''; // 恢复页面滚动
-          mountRef.current.style.position = '';
-          mountRef.current.style.width = '';
-          mountRef.current.style.height = '';
-          mountRef.current.style.top = '';
-          mountRef.current.style.left = '';
-          mountRef.current.style.zIndex = '';
-          mountRef.current.style.backgroundColor = '';
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        }
-      }
+      handleResize();
+    } catch (err) {
+      console.error('Error toggling fullscreen:', err);
     }
-    
-    setIsFullScreen(!isFullScreen);
-    handleResize();
   };
 
 
@@ -272,11 +301,19 @@ const ThreeScene = () => {
   // while (scene.children.length > 0) {
   //   scene.remove(scene.children[0]);
   // }
-  scene.children.forEach((child) => {
-    if (child !== scene.modelGroup && !(child instanceof THREE.Light) && child !== scene.lightGroup) {
-      scene.remove(child);
-    }
-  });
+
+  scene.children = scene.children.filter(child => 
+    (child === scene.modelGroup) ||
+    (child instanceof THREE.Light) || 
+    (child === scene.lightGroup) ||
+    (child.type === 'Mesh' && child.geometry.type === 'TextGeometry') || // 保留文字标签
+    (child === scene.gridGroup) // 保留网格组
+  );
+  // scene.children.forEach((child) => {
+  //   if (child !== scene.modelGroup && !(child instanceof THREE.Light) && child !== scene.lightGroup) {
+  //     scene.remove(child);
+  //   }
+  // });
   const axisMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // 黑色轴线
 
   // X轴
@@ -306,6 +343,7 @@ const ThreeScene = () => {
     addTicks(scene, "y", spaceSize.y);
     addTicks(scene, "z", spaceSize.z);
   }, [createGrids, addTicks, spaceSize]);
+
 
 
   const addAxisLabels = useCallback((scene, length) => {
@@ -380,7 +418,7 @@ const ThreeScene = () => {
     mountNode.appendChild(renderer.domElement);
     
     const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
-    createThickAxis(scene, axisLength);
+    createThickAxis(scene, axisLength, false);
     addAxisLabels(scene, axisLength);
 
     window.addEventListener('resize', handleResize);
@@ -596,9 +634,6 @@ const ThreeScene = () => {
     };
   }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
 
-  // }, []);
-
-
 
   // 更新长方体位置和大小
   useEffect(() => {
@@ -710,6 +745,10 @@ const ThreeScene = () => {
       cameraRef.current.lookAt(0, 0, 0);
     }
   }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize]);
+  // }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
+
+
+
   
 
   return (
