@@ -605,8 +605,9 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  // }, [createThickAxis, addAxisLabels, spaceSize]);
-  }, []);
+  }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
+
+  // }, []);
 
 
 
