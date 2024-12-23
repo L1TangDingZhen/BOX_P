@@ -498,7 +498,7 @@ const ThreeScene = () => {
 
         if (mousePosition.current.initialPinchDistance) {
           const scale = currentDistance / mousePosition.current.initialPinchDistance;
-          const zoomSpeed = 0.4;
+          const zoomSpeed = 0.5;
           const radius = camera.position.length();
           const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
 
