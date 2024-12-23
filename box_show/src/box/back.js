@@ -186,33 +186,60 @@ const ThreeScene = () => {
     const gridGroup = new THREE.Group();
     gridGroup.visible = visible;
     scene.add(gridGroup);
-  
-    // XY平面的网格（前面）
-    const gridXY = new THREE.GridHelper(spaceSize.x, spaceSize.x);
-    // 旋转到XY平面并位置调整
-    gridXY.rotation.x = -Math.PI / 2;
-    gridXY.position.set(spaceSize.x / 2, spaceSize.y / 2, 0);
-    // 调整Y轴缩放以匹配高度
-    gridXY.scale.y = spaceSize.y / spaceSize.x;
-    gridGroup.add(gridXY);
-  
-    // XZ平面的网格（底部）
-    const gridXZ = new THREE.GridHelper(spaceSize.x, spaceSize.x);
-    // 位置调整到底部
-    gridXZ.position.set(spaceSize.x / 2, 0, spaceSize.z / 2);
-    // 调整Z轴缩放以匹配深度
-    gridXZ.scale.z = spaceSize.z / spaceSize.x;
-    gridGroup.add(gridXZ);
     
-    // YZ平面的网格（侧面）
-    const gridYZ = new THREE.GridHelper(spaceSize.y, spaceSize.y);
-    // 旋转到YZ平面并位置调整
-    gridYZ.rotation.z = Math.PI / 2;
-    gridYZ.position.set(0, spaceSize.y / 2, spaceSize.z / 2);
-    // 调整Z轴缩放以匹配深度
-    gridYZ.scale.z = spaceSize.z / spaceSize.y;
-    gridGroup.add(gridYZ);
-  
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.2, transparent: true });
+    
+    // XY平面（前面）网格
+    const xyGeometry = new THREE.BufferGeometry();
+    const xyVertices = [];
+    // 垂直线
+    for (let x = 0; x <= spaceSize.x; x++) {
+      xyVertices.push(x, 0, 0);
+      xyVertices.push(x, spaceSize.y, 0);
+    }
+    // 水平线
+    for (let y = 0; y <= spaceSize.y; y++) {
+      xyVertices.push(0, y, 0);
+      xyVertices.push(spaceSize.x, y, 0);
+    }
+    xyGeometry.setAttribute('position', new THREE.Float32BufferAttribute(xyVertices, 3));
+    const xyGrid = new THREE.LineSegments(xyGeometry, gridMaterial);
+    gridGroup.add(xyGrid);
+
+    // XZ平面（底部）网格
+    const xzGeometry = new THREE.BufferGeometry();
+    const xzVertices = [];
+    // X方向的线
+    for (let x = 0; x <= spaceSize.x; x++) {
+      xzVertices.push(x, 0, 0);
+      xzVertices.push(x, 0, spaceSize.z);
+    }
+    // Z方向的线
+    for (let z = 0; z <= spaceSize.z; z++) {
+      xzVertices.push(0, 0, z);
+      xzVertices.push(spaceSize.x, 0, z);
+    }
+    xzGeometry.setAttribute('position', new THREE.Float32BufferAttribute(xzVertices, 3));
+    const xzGrid = new THREE.LineSegments(xzGeometry, gridMaterial);
+    gridGroup.add(xzGrid);
+
+    // YZ平面（侧面）网格
+    const yzGeometry = new THREE.BufferGeometry();
+    const yzVertices = [];
+    // Y方向的线
+    for (let y = 0; y <= spaceSize.y; y++) {
+      yzVertices.push(0, y, 0);
+      yzVertices.push(0, y, spaceSize.z);
+    }
+    // Z方向的线
+    for (let z = 0; z <= spaceSize.z; z++) {
+      yzVertices.push(0, 0, z);
+      yzVertices.push(0, spaceSize.y, z);
+    }
+    yzGeometry.setAttribute('position', new THREE.Float32BufferAttribute(yzVertices, 3));
+    const yzGrid = new THREE.LineSegments(yzGeometry, gridMaterial);
+    gridGroup.add(yzGrid);
+
     scene.gridGroup = gridGroup;
   }, []);
 
@@ -394,50 +421,133 @@ const ThreeScene = () => {
       };
     };
 
+    // const handleTouchStart = (e) => {
+    //   isMouseDown.current = true;
+    //   // 使用 `touches[0]` 获取第一个触摸点
+    //   mousePosition.current = {
+    //     x: e.touches[0].clientX,
+    //     y: e.touches[0].clientY,
+    //   };
+    // };
+
+
+    // 修改 touchstart 事件处理
     const handleTouchStart = (e) => {
+      e.preventDefault(); // 阻止默认行为
       isMouseDown.current = true;
-      // 使用 `touches[0]` 获取第一个触摸点
-      mousePosition.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      };
+      
+      // 处理双指触控
+      if (e.touches.length === 2) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const distance = Math.sqrt(
+          Math.pow(touch2.clientX - touch1.clientX, 2) +
+          Math.pow(touch2.clientY - touch1.clientY, 2)
+        );
+        mousePosition.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          initialPinchDistance: distance
+        };
+      } else {
+        mousePosition.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      }
     };
-    
+      
     const handleTouchEnd = () => {
       isMouseDown.current = false;
     };
     
+    // const handleTouchMove = (e) => {
+    //   if (!isMouseDown.current) return;
+    
+    //   // 触摸点变化
+    //   const deltaX = e.touches[0].clientX - mousePosition.current.x;
+    //   const deltaY = e.touches[0].clientY - mousePosition.current.y;
+    
+    //   cameraRotation.current.x += deltaY * 0.01;
+    //   cameraRotation.current.y += deltaX * 0.01;
+    
+    //   const radius = Math.sqrt(
+    //     camera.position.x ** 2 +
+    //     camera.position.y ** 2 +
+    //     camera.position.z ** 2
+    //   );
+    
+    //   camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+    //   camera.position.y = radius * Math.sin(cameraRotation.current.x);
+    //   camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+    
+    //   camera.lookAt(0, 0, 0);
+    
+    //   mousePosition.current = {
+    //     x: e.touches[0].clientX,
+    //     y: e.touches[0].clientY,
+    //   };
+    // };
+
+
+      // 修改 touchmove 事件处理
     const handleTouchMove = (e) => {
+      e.preventDefault(); // 阻止默认行为
       if (!isMouseDown.current) return;
-    
-      // 触摸点变化
-      const deltaX = e.touches[0].clientX - mousePosition.current.x;
-      const deltaY = e.touches[0].clientY - mousePosition.current.y;
-    
-      cameraRotation.current.x += deltaY * 0.01;
-      cameraRotation.current.y += deltaX * 0.01;
-    
-      const radius = Math.sqrt(
-        camera.position.x ** 2 +
-        camera.position.y ** 2 +
-        camera.position.z ** 2
-      );
-    
-      camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-      camera.position.y = radius * Math.sin(cameraRotation.current.x);
-      camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-    
-      camera.lookAt(0, 0, 0);
-    
-      mousePosition.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      };
+
+      // 处理双指缩放
+      if (e.touches.length === 2) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const currentDistance = Math.sqrt(
+          Math.pow(touch2.clientX - touch1.clientX, 2) +
+          Math.pow(touch2.clientY - touch1.clientY, 2)
+        );
+
+        if (mousePosition.current.initialPinchDistance) {
+          const scale = currentDistance / mousePosition.current.initialPinchDistance;
+          const zoomSpeed = 0.1;
+          const radius = camera.position.length();
+          const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
+
+          // 限制缩放范围
+          const minRadius = 5;
+          const maxRadius = 50;
+          if (newRadius >= minRadius && newRadius <= maxRadius) {
+            const scaleFactor = newRadius / radius;
+            camera.position.multiplyScalar(scaleFactor);
+          }
+          camera.lookAt(0, 0, 0);
+        }
+        mousePosition.current.initialPinchDistance = currentDistance;
+      } 
+      // 处理单指旋转
+      else if (e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - mousePosition.current.x;
+        const deltaY = e.touches[0].clientY - mousePosition.current.y;
+
+        cameraRotation.current.x += deltaY * 0.01;
+        cameraRotation.current.y += deltaX * 0.01;
+
+        const radius = camera.position.length();
+        camera.position.x = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+        camera.position.y = radius * Math.sin(cameraRotation.current.x);
+        camera.position.z = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+        
+        camera.lookAt(0, 0, 0);
+        
+        mousePosition.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      }
     };
-    
+      
 
     renderer.domElement.addEventListener('mousedown', handleMouseDown);
-    renderer.domElement.addEventListener('touchstart', handleTouchStart); // 新增触摸事件
+    renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+    renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    renderer.domElement.addEventListener('touchend', handleTouchEnd);
     
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('touchend', handleTouchEnd); // 新增触摸事件
@@ -445,6 +555,7 @@ const ThreeScene = () => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchmove', handleTouchMove); // 新增触摸事件
     
+
 
     // Animation
     const animate = () => {
@@ -478,7 +589,9 @@ const ThreeScene = () => {
       window.removeEventListener('touchmove', handleTouchMove); // 移除触摸事件
       // mountRef.current?.removeEventListener('wheel', handleWheelWrapper);
 
-      
+      renderer.domElement.removeEventListener('touchstart', handleTouchStart);
+      renderer.domElement.removeEventListener('touchmove', handleTouchMove);
+      renderer.domElement.removeEventListener('touchend', handleTouchEnd);
 
       if (mountNode && renderer.domElement) { // 使用局部变量 mountNode
         mountNode.removeChild(renderer.domElement);
@@ -492,7 +605,10 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  }, [createThickAxis, addAxisLabels, spaceSize]);
+  // }, [createThickAxis, addAxisLabels, spaceSize]);
+  }, []);
+
+
 
   // 更新长方体位置和大小
   useEffect(() => {
