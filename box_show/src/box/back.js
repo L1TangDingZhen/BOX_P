@@ -115,50 +115,17 @@ const ThreeScene = () => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const toggleFullScreen = async () => {
+    // 用于检测是否为 iPhone 或 iPad
     const isIOS = /iPhone|iPad/.test(navigator.userAgent);
   
     try {
       if (!isFullScreen) {
-        // —— 进入全屏/伪全屏 ——
+        // —— 进入全屏 ——
         setIsFullScreen(true);
   
-        if (isIOS) {
-          // iOS 设备上使用伪全屏
-          if (mountRef.current) {
-            mountRef.current.style.position = "fixed";
-            mountRef.current.style.top = "0";
-            mountRef.current.style.left = "0";
-            mountRef.current.style.width = "100vw";
-            mountRef.current.style.height = "100vh";
-            mountRef.current.style.zIndex = "9999";
-  
-            // 创建一个退出全屏按钮
-            const exitButton = document.createElement("button");
-            exitButton.innerText = "X";
-            exitButton.style.position = "fixed";
-            exitButton.style.top = "20px";
-            exitButton.style.left = "20px";
-            exitButton.style.zIndex = "10000";
-            exitButton.style.background = "red";
-            exitButton.style.color = "white";
-            exitButton.style.border = "none";
-            exitButton.style.padding = "10px";
-            exitButton.style.borderRadius = "5px";
-            exitButton.style.cursor = "pointer";
-  
-            // 点击事件：退出全屏
-            exitButton.addEventListener("click", (e) => {
-              e.stopPropagation(); // 阻止事件冒泡
-              toggleFullScreen();
-            });
-  
-            // 若当前容器中尚未添加该按钮，则添加
-            if (!mountRef.current.contains(exitButton)) {
-              mountRef.current.appendChild(exitButton);
-            }
-          }
-        } else {
-          // 桌面/非 iOS 设备使用原生全屏 API
+        // iOS 上跳过伪全屏，只使用系统手势
+        if (!isIOS) {
+          // 非 iOS，使用原生 fullscreen
           if (mountRef.current.requestFullscreen) {
             await mountRef.current.requestFullscreen();
           } else if (mountRef.current.webkitRequestFullscreen) {
@@ -166,27 +133,12 @@ const ThreeScene = () => {
           }
         }
       } else {
-        // —— 退出全屏/伪全屏 ——
+        // —— 退出全屏 ——
         setIsFullScreen(false);
   
-        if (isIOS) {
-          // 恢复容器样式
-          if (mountRef.current) {
-            mountRef.current.style.position = "";
-            mountRef.current.style.top = "";
-            mountRef.current.style.left = "";
-            mountRef.current.style.width = "";
-            mountRef.current.style.height = "";
-            mountRef.current.style.zIndex = "";
-  
-            // 移除退出按钮
-            const exitButton = mountRef.current.querySelector("button");
-            if (exitButton) {
-              exitButton.remove();
-            }
-          }
-        } else {
-          // 原生退出全屏
+        // iOS 不做任何处理，由用户下滑退出
+        if (!isIOS) {
+          // 非 iOS 退出原生 fullscreen
           if (document.exitFullscreen) {
             await document.exitFullscreen();
           } else if (document.webkitExitFullscreen) {
@@ -198,6 +150,7 @@ const ThreeScene = () => {
       console.error("Error toggling fullscreen:", err);
     }
   };
+  
   
 
 
