@@ -503,8 +503,11 @@ const ThreeScene = () => {
       // 检查是否是 iOS 设备且处于全屏模式
       if (isIOS && isFullScreen) {
         const deltaY = e.touches[0].clientY - mousePosition.current.y;
-        // 如果向下滑动的距离大于 0,则退出全屏
-        if (deltaY > 0) {
+        // 设置退出全屏的阈值，这里以当前屏幕高度的三分之一为例
+        const threshold = window.innerHeight / 3;
+
+        // 如果向下滑动距离大于阈值，则退出全屏
+        if (deltaY > threshold) {
           toggleFullScreen();
           return;
         }
@@ -621,7 +624,8 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z, isFullScreen, isIOS, toggleFullScreen]);
+  // }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z, isFullScreen, isIOS, toggleFullScreen]);
+  }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);  // 移除 isFullScreen, isIOS, toggleFullScreen
 
 
   // 更新长方体位置和大小
