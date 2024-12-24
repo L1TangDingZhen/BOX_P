@@ -122,6 +122,7 @@ const ThreeScene = () => {
         setIsFullScreen(true);
   
         if (isIOS) {
+          // 模拟全屏
           if (mountRef.current) {
             mountRef.current.style.position = "fixed";
             mountRef.current.style.top = "0";
@@ -145,8 +146,7 @@ const ThreeScene = () => {
   
             exitButton.addEventListener("click", (e) => {
               e.stopPropagation();
-              alert("Exit button clicked");
-              toggleFullScreen();
+              toggleFullScreen(); // 调用自身退出全屏
             });
   
             if (!mountRef.current.contains(exitButton)) {
@@ -154,6 +154,7 @@ const ThreeScene = () => {
             }
           }
         } else {
+          // 非 iOS 设备使用标准 Fullscreen API
           if (mountRef.current.requestFullscreen) {
             await mountRef.current.requestFullscreen();
           } else if (mountRef.current.webkitRequestFullscreen) {
@@ -164,6 +165,7 @@ const ThreeScene = () => {
         setIsFullScreen(false);
   
         if (isIOS) {
+          // 恢复样式
           if (mountRef.current) {
             mountRef.current.style.position = "";
             mountRef.current.style.top = "";
@@ -172,12 +174,14 @@ const ThreeScene = () => {
             mountRef.current.style.height = "";
             mountRef.current.style.zIndex = "";
   
+            // 移除退出按钮
             const exitButton = mountRef.current.querySelector("button");
             if (exitButton) {
               exitButton.remove();
             }
           }
         } else {
+          // 使用标准 Fullscreen API 退出
           if (document.exitFullscreen) {
             await document.exitFullscreen();
           } else if (document.webkitExitFullscreen) {
