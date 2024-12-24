@@ -36,6 +36,9 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>全屏按钮需要优化位置</li>
           <li style={styles.strikethrough}>长方体尺寸有验证是否冲突，！但起始位置没有验证（没有验证加入长方体后位置是否超出空间大小</li>
           <li>超大数值会卡住</li>
+          <li>iPad退出全屏没有问题 iPhone无法退出全屏</li>
+          <li>iPad退出当前页面和正常向下晃动混淆</li>
+          <li>页面缩略图在全屏后大小有变化</li>
 
         </ul>
       </div>
