@@ -119,11 +119,10 @@ const ThreeScene = () => {
   
     try {
       if (!isFullScreen) {
-        setIsFullScreen(true); // 设置全屏状态
+        setIsFullScreen(true);
   
         if (isIOS) {
           if (mountRef.current) {
-            // 设置全屏样式
             mountRef.current.style.position = "fixed";
             mountRef.current.style.top = "0";
             mountRef.current.style.left = "0";
@@ -131,7 +130,6 @@ const ThreeScene = () => {
             mountRef.current.style.height = "100vh";
             mountRef.current.style.zIndex = "9999";
   
-            // 添加退出按钮
             const exitButton = document.createElement("button");
             exitButton.innerText = "X";
             exitButton.style.position = "fixed";
@@ -146,11 +144,11 @@ const ThreeScene = () => {
             exitButton.style.cursor = "pointer";
   
             exitButton.addEventListener("click", (e) => {
-              e.stopPropagation(); // 阻止事件冒泡
-              toggleFullScreen(); // 调用退出全屏逻辑
+              e.stopPropagation();
+              console.log("Exit button clicked");
+              toggleFullScreen();
             });
   
-            // 确保没有重复添加按钮
             if (!mountRef.current.contains(exitButton)) {
               mountRef.current.appendChild(exitButton);
             }
@@ -163,11 +161,10 @@ const ThreeScene = () => {
           }
         }
       } else {
-        setIsFullScreen(false); // 退出全屏状态
+        setIsFullScreen(false);
   
         if (isIOS) {
           if (mountRef.current) {
-            // 恢复样式
             mountRef.current.style.position = "";
             mountRef.current.style.top = "";
             mountRef.current.style.left = "";
@@ -175,7 +172,6 @@ const ThreeScene = () => {
             mountRef.current.style.height = "";
             mountRef.current.style.zIndex = "";
   
-            // 删除退出按钮
             const exitButton = mountRef.current.querySelector("button");
             if (exitButton) {
               exitButton.remove();
@@ -193,7 +189,7 @@ const ThreeScene = () => {
       console.error("Error toggling fullscreen:", err);
     }
   };
-
+  
 
 
   const addTicks = useCallback((scene, axis, length) => {
