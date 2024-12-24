@@ -624,7 +624,7 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  // }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z, isFullScreen, isIOS, toggleFullScreen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);  // 移除 isFullScreen, isIOS, toggleFullScreen
 
 
