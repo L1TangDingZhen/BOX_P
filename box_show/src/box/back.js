@@ -15,6 +15,8 @@ const ThreeScene = () => {
   const [cubes, setCubes] = useState([]); // 存储所有长方体
   const colorSet = new Set(); // 用于存储颜色，防止重复
   const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
+  const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+
 
   const handleSpaceSizeChange = (dimension, value) => {
     const numValue = parseFloat(value);
@@ -114,18 +116,27 @@ const ThreeScene = () => {
 
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const toggleFullScreen = async () => {
-    // 用于检测是否为 iPhone 或 iPad
-    const isIOS = /iPhone|iPad/.test(navigator.userAgent);
-  
+  // const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+
+
+  const toggleFullScreen = useCallback(async () => {
     try {
       if (!isFullScreen) {
-        // —— 进入全屏 ——
+        // —— 进入全屏/伪全屏 ——
         setIsFullScreen(true);
   
-        // iOS 上跳过伪全屏，只使用系统手势
-        if (!isIOS) {
-          // 非 iOS，使用原生 fullscreen
+        if (isIOS) {
+          // iOS 设备上使用伪全屏
+          if (mountRef.current) {
+            mountRef.current.style.position = "fixed";
+            mountRef.current.style.top = "0";
+            mountRef.current.style.left = "0";
+            mountRef.current.style.width = "100vw";
+            mountRef.current.style.height = "100vh";
+            mountRef.current.style.zIndex = "9999";
+          }
+        } else {
+          // 桌面/非 iOS 设备使用原生全屏 API
           if (mountRef.current.requestFullscreen) {
             await mountRef.current.requestFullscreen();
           } else if (mountRef.current.webkitRequestFullscreen) {
@@ -133,12 +144,21 @@ const ThreeScene = () => {
           }
         }
       } else {
-        // —— 退出全屏 ——
+        // —— 退出全屏/伪全屏 ——
         setIsFullScreen(false);
   
-        // iOS 不做任何处理，由用户下滑退出
-        if (!isIOS) {
-          // 非 iOS 退出原生 fullscreen
+        if (isIOS) {
+          // 恢复容器样式
+          if (mountRef.current) {
+            mountRef.current.style.position = "";
+            mountRef.current.style.top = "";
+            mountRef.current.style.left = "";
+            mountRef.current.style.width = "";
+            mountRef.current.style.height = "";
+            mountRef.current.style.zIndex = "";
+          }
+        } else {
+          // 原生退出全屏
           if (document.exitFullscreen) {
             await document.exitFullscreen();
           } else if (document.webkitExitFullscreen) {
@@ -149,9 +169,7 @@ const ThreeScene = () => {
     } catch (err) {
       console.error("Error toggling fullscreen:", err);
     }
-  };
-  
-  
+  }, [isFullScreen, isIOS]);
 
 
   const addTicks = useCallback((scene, axis, length) => {
@@ -479,11 +497,20 @@ const ThreeScene = () => {
     
 
 
-      // 修改 touchmove 事件处理
     const handleTouchMove = (e) => {
       e.preventDefault(); // 阻止默认行为
-      if (!isMouseDown.current) return;
+      
+      // 检查是否是 iOS 设备且处于全屏模式
+      if (isIOS && isFullScreen) {
+        const deltaY = e.touches[0].clientY - mousePosition.current.y;
+        // 如果向下滑动的距离大于 0,则退出全屏
+        if (deltaY > 0) {
+          toggleFullScreen();
+          return;
+        }
+      }
 
+      if (!isMouseDown.current) return;
       // 处理双指缩放
       if (e.touches.length === 2) {
         const touch1 = e.touches[0];
@@ -515,7 +542,6 @@ const ThreeScene = () => {
         const deltaX = e.touches[0].clientX - mousePosition.current.x;
         const deltaY = e.touches[0].clientY - mousePosition.current.y;
 
-
         // 灵敏度调整
         cameraRotation.current.x += deltaY * 0.01;
         cameraRotation.current.y += deltaX * 0.01;
@@ -533,7 +559,6 @@ const ThreeScene = () => {
         };
       }
     };
-      
 
     renderer.domElement.addEventListener('mousedown', handleMouseDown);
     renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -596,7 +621,7 @@ const ThreeScene = () => {
       }
       // window.removeEventListener('resize', handleResize);
     };
-  }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
+  }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z, isFullScreen, isIOS, toggleFullScreen]);
 
 
   // 更新长方体位置和大小
