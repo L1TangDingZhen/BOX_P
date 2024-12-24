@@ -145,7 +145,7 @@ const ThreeScene = () => {
   
             exitButton.addEventListener("click", (e) => {
               e.stopPropagation();
-              console.log("Exit button clicked");
+              alert("Exit button clicked");
               toggleFullScreen();
             });
   
