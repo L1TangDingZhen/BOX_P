@@ -11,6 +11,11 @@ const IssuesAndTodos = () => {
     window.location.href = "/back";
   };
 
+  // 跳转到 /back 路径
+  const goToTwo = () => {
+    window.location.href = "/two";
+  };
+
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>问题和代办列表</h1>
@@ -22,6 +27,9 @@ const IssuesAndTodos = () => {
         </button>
         <button style={styles.button} onClick={goToBack}>
           访问 /back 链接
+        </button>
+        <button style={styles.button} onClick={goToTwo}>
+          访问 /two 
         </button>
       </div>
 

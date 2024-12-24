@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Box from './box/box';
 import Back from './box/back';
+import Two from './box/two';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -15,6 +16,7 @@ root.render(
         <Route path="/" element={<Box />} />
         {/* /back 路径，加载 Back 组件 */}
         <Route path="/back" element={<Back />} />
+        <Route path="/two" element={<Two />} />
       </Routes>
     </Router>
   // </React.StrictMode>
