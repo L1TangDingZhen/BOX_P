@@ -131,6 +131,15 @@ const ThreeScene = () => {
             mountRef.current.style.width = '100vw';
             mountRef.current.style.height = '100vh';
             mountRef.current.style.zIndex = '9999';
+            // 在这里添加退出全屏按钮
+            const exitButton = document.createElement('button');
+            exitButton.innerText = 'X';
+            exitButton.style.position = 'fixed';
+            exitButton.style.top = '20px';
+            exitButton.style.left = '20px';
+            exitButton.style.zIndex = '10000';
+            exitButton.addEventListener('click', toggleFullScreen);
+            mountRef.current.appendChild(exitButton);
   
             // 添加滑动退出的处理
             let touchStartY = 0;
@@ -143,7 +152,7 @@ const ThreeScene = () => {
               const deltaY = touchY - touchStartY;
   
               // 如果向下滑动超过 100px，退出全屏
-              if (deltaY > 100) {
+              if (deltaY > 200) {
                 toggleFullScreen();
                 // 清除事件监听器
                 mountRef.current.removeEventListener('touchstart', handleFullscreenTouchStart);
@@ -153,6 +162,14 @@ const ThreeScene = () => {
   
             mountRef.current.addEventListener('touchstart', handleFullscreenTouchStart);
             mountRef.current.addEventListener('touchmove', handleFullscreenTouchMove);
+            // 退出全屏时移除按钮和事件监听器
+            return () => {
+              if (mountRef.current.contains(exitButton)) {
+                mountRef.current.removeChild(exitButton);
+              }
+              mountRef.current.removeEventListener('touchstart', handleFullscreenTouchStart);
+              mountRef.current.removeEventListener('touchmove', handleFullscreenTouchMove);
+            };
           }
         } else {
           // 其他设备使用标准全屏 API

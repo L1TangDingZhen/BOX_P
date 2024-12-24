@@ -34,7 +34,7 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>是否设置起始空间大小</li>
           <li style={styles.strikethrough}>移动端无法全屏</li>
           <li style={styles.strikethrough}>全屏按钮需要优化位置</li>
-          <li>长方体尺寸有验证是否冲突，！但起始位置没有验证（没有验证加入长方体后位置是否超出空间大小</li>
+          <li style={styles.strikethrough}>长方体尺寸有验证是否冲突，！但起始位置没有验证（没有验证加入长方体后位置是否超出空间大小</li>
           <li>超大数值会卡住</li>
 
         </ul>
@@ -52,7 +52,7 @@ const IssuesAndTodos = () => {
         <h2 style={styles.subHeader}>代办</h2>
         <ul style={styles.list}>
           <li>用作分层的进度条</li>
-          <li>拖拽？</li>
+          <li style={styles.strikethrough}>拖拽？</li>
           <li>前一个物体变为灰色</li>
           <li>三视图角度</li>
           <li>物理的放置顺序和列表</li>
