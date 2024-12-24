@@ -14,6 +14,7 @@ const ThreeScene = () => {
     const isMouseDown = useRef(false);
     const mousePosition = useRef({ x: 0, y: 0 });
     const cameraRotation = useRef({ x: 0, y: 0 });
+    const toggleFullScreenRef = useRef(null);
 
     // --- State ---
     const [coordinates, setCoordinates] = useState({ x: 0, y: 0, z: 0 });
@@ -59,62 +60,132 @@ const ThreeScene = () => {
             rendererRef.current.setSize(width, height, true);
             cameraRef.current.aspect = width / height;
             cameraRef.current.updateProjectionMatrix();
+        }
+    }, [rendererRef, mountRef, cameraRef]);
+
+
+    // 然后修改 handleTouchMove
+    const handleTouchMove = useCallback((e) => {
+        e.preventDefault();
+
+        // iOS 设备的滑动退出处理
+        if (isIOS && isFullScreen) {
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            const threshold = window.innerHeight / 4;
+            console.log('Delta Y:', deltaY, 'Threshold:', threshold);
             
-            if (sceneRef.current && cameraRef.current) {
-                rendererRef.current.render(sceneRef.current, cameraRef.current);
+            if (deltaY > threshold) {
+                // 使用 ref 调用 toggleFullScreen
+                toggleFullScreenRef.current?.();
+                return;
             }
         }
-    }, []);
+        
+        if (!cameraRef.current || !isMouseDown.current) return;
+        
+        const camera = cameraRef.current;
+
+        if (e.touches.length === 2) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.sqrt(
+                Math.pow(touch2.clientX - touch1.clientX, 2) +
+                Math.pow(touch2.clientY - touch1.clientY, 2)
+            );
+
+            if (mousePosition.current.initialPinchDistance) {
+                const scale = currentDistance / mousePosition.current.initialPinchDistance;
+                const zoomSpeed = 0.5;
+                const radius = camera.position.length();
+                const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
+
+                const minRadius = 5;
+                const maxRadius = 50;
+                if (newRadius >= minRadius && newRadius <= maxRadius) {
+                    const scaleFactor = newRadius / radius;
+                    camera.position.multiplyScalar(scaleFactor);
+                }
+                camera.lookAt(0, 0, 0);
+            }
+            mousePosition.current.initialPinchDistance = currentDistance;
+        } else if (e.touches.length === 1) {
+            const deltaX = e.touches[0].clientX - mousePosition.current.x;
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+
+            cameraRotation.current.x += deltaY * 0.01;
+            cameraRotation.current.y += deltaX * 0.01;
+
+            const radius = camera.position.length();
+            camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+            camera.position.y = radius * Math.sin(cameraRotation.current.x);
+            camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+            
+            camera.lookAt(0, 0, 0);
+            
+            mousePosition.current = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            };
+        }
+    }, [isIOS, isFullScreen]); // 移除 toggleFullScreen 依赖
 
 
+    // 修改 toggleFullScreen
     const toggleFullScreen = useCallback(async () => {
         try {
             if (!isFullScreen) {
-            setIsFullScreen(true);
-            if (isIOS) {
-                if (mountRef.current) {
-                mountRef.current.style.position = "fixed";
-                mountRef.current.style.top = "0";
-                mountRef.current.style.left = "0";
-                mountRef.current.style.width = "100vw";
-                mountRef.current.style.height = "100vh";
-                mountRef.current.style.zIndex = "9999";
-                mountRef.current.style.backgroundColor = "#f0f0f0"; // 添加背景色
+                setIsFullScreen(true);
+                if (isIOS) {
+                    if (mountRef.current) {
+                        mountRef.current.style.position = "fixed";
+                        mountRef.current.style.top = "0";
+                        mountRef.current.style.left = "0";
+                        mountRef.current.style.width = "100vw";
+                        mountRef.current.style.height = "100vh";
+                        mountRef.current.style.zIndex = "9999";
+                        mountRef.current.style.backgroundColor = "#f0f0f0";
+
+                        mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    }
+                } else {
+                    if (mountRef.current?.requestFullscreen) {
+                        await mountRef.current.requestFullscreen();
+                        setTimeout(handleResize, 100);
+                    } else if (mountRef.current?.webkitRequestFullscreen) {
+                        await mountRef.current.webkitRequestFullscreen();
+                    }
                 }
             } else {
-                if (mountRef.current?.requestFullscreen) {
-                await mountRef.current.requestFullscreen();
-                setTimeout(handleResize, 100);
-                } else if (mountRef.current?.webkitRequestFullscreen) {
-                await mountRef.current.webkitRequestFullscreen();
+                setIsFullScreen(false);
+                if (isIOS) {
+                    if (mountRef.current) {
+                        mountRef.current.style.position = "";
+                        mountRef.current.style.top = "";
+                        mountRef.current.style.left = "";
+                        mountRef.current.style.width = "";
+                        mountRef.current.style.height = "";
+                        mountRef.current.style.zIndex = "";
+
+                        mountRef.current.removeEventListener('touchmove', handleTouchMove);
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    }
                 }
-            }
-            } else {
-            setIsFullScreen(false);
-            if (isIOS) {
-                if (mountRef.current) {
-                mountRef.current.style.position = "";
-                mountRef.current.style.top = "";
-                mountRef.current.style.left = "";
-                mountRef.current.style.width = "";
-                mountRef.current.style.height = "";
-                mountRef.current.style.zIndex = "";
-                }
-            } else {
-                if (document.exitFullscreen) {
-                await document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                await document.webkitExitFullscreen();
-                }
-            }
             }
         } catch (err) {
             console.error("Error toggling fullscreen:", err);
         }
-    }, [isFullScreen, isIOS, handleResize]);
+    }, [isFullScreen, isIOS, handleTouchMove, handleResize]);
 
 
-
+    // 添加新的 useEffect 来更新 ref
+    useEffect(() => {
+        toggleFullScreenRef.current = toggleFullScreen;
+    }, [toggleFullScreen]);
 
 
     // --- Event Handlers ---
@@ -132,6 +203,21 @@ const ThreeScene = () => {
 
 
     const handleMouseMove = useCallback((e) => {
+
+        e.preventDefault();
+        // iOS 设备的滑动退出处理
+        if (isIOS && isFullScreen) {
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            // 降低退出阈值为屏幕高度的四分之一
+            const threshold = window.innerHeight / 4;
+            console.log('Delta Y:', deltaY, 'Threshold:', threshold); // 调试输出
+            
+            if (deltaY > threshold) {
+                toggleFullScreen();
+                return;
+            }
+        }
+
         if (!isMouseDown.current || !cameraRef.current) return;
     
         const deltaX = e.clientX - mousePosition.current.x;
@@ -157,7 +243,7 @@ const ThreeScene = () => {
             x: e.clientX,
             y: e.clientY
         };
-    }, []);
+    }, [isFullScreen, isIOS, toggleFullScreen]);
     
     
     const handleWheel = useCallback((e) => {
@@ -210,64 +296,7 @@ const ThreeScene = () => {
 
 
 
-    const handleTouchMove = useCallback((e) => {
-        e.preventDefault();
-        if (!cameraRef.current || !isMouseDown.current) return;
-        
-        const camera = cameraRef.current;
-        
-        if (isIOS && isFullScreen) {
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-            const threshold = window.innerHeight / 3;
-            if (deltaY > threshold) {
-            toggleFullScreen();
-            return;
-            }
-        }
 
-        if (e.touches.length === 2) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const currentDistance = Math.sqrt(
-            Math.pow(touch2.clientX - touch1.clientX, 2) +
-            Math.pow(touch2.clientY - touch1.clientY, 2)
-            );
-
-            if (mousePosition.current.initialPinchDistance) {
-            const scale = currentDistance / mousePosition.current.initialPinchDistance;
-            const zoomSpeed = 0.5;
-            const radius = camera.position.length();
-            const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
-
-            const minRadius = 5;
-            const maxRadius = 50;
-            if (newRadius >= minRadius && newRadius <= maxRadius) {
-                const scaleFactor = newRadius / radius;
-                camera.position.multiplyScalar(scaleFactor);
-            }
-            camera.lookAt(0, 0, 0);
-            }
-            mousePosition.current.initialPinchDistance = currentDistance;
-        } else if (e.touches.length === 1) {
-            const deltaX = e.touches[0].clientX - mousePosition.current.x;
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-
-            cameraRotation.current.x += deltaY * 0.01;
-            cameraRotation.current.y += deltaX * 0.01;
-
-            const radius = camera.position.length();
-            camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-            camera.position.y = radius * Math.sin(cameraRotation.current.x);
-            camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-            
-            camera.lookAt(0, 0, 0);
-            
-            mousePosition.current = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY
-            };
-        }
-    }, [isIOS, isFullScreen, toggleFullScreen]);
 
 
     const handleTouchEnd = useCallback(() => {
@@ -644,6 +673,24 @@ const ThreeScene = () => {
         handleTouchEnd
     ]);
 
+
+    // 在这里添加新的 useEffect
+    // 在组件挂载时添加全局触摸事件监听
+    useEffect(() => {
+        if (isIOS && isFullScreen) {
+            const handleGlobalTouchMove = (e) => {
+                if (e.touches.length === 1) {
+                    handleTouchMove(e);
+                }
+            };
+            
+            document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+            
+            return () => {
+                document.removeEventListener('touchmove', handleGlobalTouchMove);
+            };
+        }
+    }, [isIOS, isFullScreen, handleTouchMove]);
 
     // 更新立方体
     useEffect(() => {
