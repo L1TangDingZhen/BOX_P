@@ -152,7 +152,7 @@ const ThreeScene = () => {
               const deltaY = touchY - touchStartY;
   
               // 如果向下滑动超过 100px，退出全屏
-              if (deltaY > window.innerHeight / 2) {
+              if (deltaY > window.innerHeight / 500) {
                 toggleFullScreen();
                 // 清除事件监听器
                 mountRef.current.removeEventListener('touchstart', handleFullscreenTouchStart);
