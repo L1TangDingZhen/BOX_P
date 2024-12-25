@@ -70,6 +70,26 @@ const IssuesAndTodos = () => {
           <li>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
         </ul>
       </div>
+
+
+
+      {/* bug */}
+      <div style={styles.section}>
+        <h2 style={styles.subHeader}>bug to fixed</h2>
+        <ul style={styles.list}>
+          <li>页面缩略图在全屏后大小有变化</li>
+          <li>三视图角度</li>
+          <li>用作分层的进度条</li>
+          <li>物理的放置顺序和列表</li>
+          <li>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
+          <li>前一个物体变为灰色</li>
+          <li>iPhone和iPad无法向下滑动退出全屏状态</li>
+          <li>自定义修改空间尺寸后，在未全屏的状态下，无法转动视角</li>
+          <li>超大数值会卡住</li>
+          <li>标签的长度是取最大值</li>
+
+        </ul>
+      </div>
     </div>
   );
 };

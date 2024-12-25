@@ -358,61 +358,63 @@ const ThreeScene = () => {
 
 
 
-    const addTicks = useCallback((scene, axis, length) => {
-    const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-    const fontLoader = new FontLoader();
-    const tickInterval = 2;
+    const addTicks = useCallback((scene, axis, length, newSpaceSize) => {
+        const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const fontLoader = new FontLoader();
 
-    for (let i = 0; i <= length; i += tickInterval) {
-        const tickGeometry = new THREE.BufferGeometry();
-        const tickPoints = [];
+        const tickInterval = 2;
 
-        if (axis === "x") {
-        tickPoints.push(new THREE.Vector3(i, -0.1, 0));
-        tickPoints.push(new THREE.Vector3(i, 0.1, 0));
-        } else if (axis === "y") {
-        tickPoints.push(new THREE.Vector3(-0.1, i, 0));
-        tickPoints.push(new THREE.Vector3(0.1, i, 0));
-        } else if (axis === "z") {
-        tickPoints.push(new THREE.Vector3(0, -0.1, i));
-        tickPoints.push(new THREE.Vector3(0, 0.1, i));
-        }
+        for (let i = 0; i <= length; i += tickInterval) {
+            const tickGeometry = new THREE.BufferGeometry();
+            const tickPoints = [];
 
-        tickGeometry.setFromPoints(tickPoints);
-        const tickLine = new THREE.Line(tickGeometry, tickMaterial);
-        scene.add(tickLine);
+            if (axis === "x") {
+            tickPoints.push(new THREE.Vector3(i, -0.1, 0));
+            tickPoints.push(new THREE.Vector3(i, 0.1, 0));
+            } else if (axis === "y") {
+            tickPoints.push(new THREE.Vector3(-0.1, i, 0));
+            tickPoints.push(new THREE.Vector3(0.1, i, 0));
+            } else if (axis === "z") {
+            tickPoints.push(new THREE.Vector3(0, -0.1, i));
+            tickPoints.push(new THREE.Vector3(0, 0.1, i));
+            }
 
-        fontLoader.load(
-        "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
-        (font) => {
-            const textGeometry = new TextGeometry(i.toString(), {
-            font: font,
-            size: 0.3,
-            height: 0.05,
-            });
-            const textMesh = new THREE.Mesh(
-            textGeometry,
-            new THREE.MeshBasicMaterial({ color: 0x000000 })
+            tickGeometry.setFromPoints(tickPoints);
+            const tickLine = new THREE.Line(tickGeometry, tickMaterial);
+            scene.add(tickLine);
+
+            fontLoader.load(
+            "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+            (font) => {
+                const textGeometry = new TextGeometry(i.toString(), {
+                font: font,
+                size: 0.3,
+                height: 0.05,
+                });
+                const textMesh = new THREE.Mesh(
+                textGeometry,
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
+                );
+
+                if (axis === "x") textMesh.position.set(i, -0.5, 0);
+                if (axis === "y") textMesh.position.set(-0.5, i, 0);
+                if (axis === "z") textMesh.position.set(0, -0.5, i);
+                
+                scene.add(textMesh);
+            }
             );
 
-            if (axis === "x") textMesh.position.set(i, -0.5, 0);
-            if (axis === "y") textMesh.position.set(-0.5, i, 0);
-            if (axis === "z") textMesh.position.set(0, -0.5, i);
-            
-            scene.add(textMesh);
+        
         }
-        );
-    }
     }, []);
 
 
-    const createThickAxis = useCallback((scene, length, onlyAxis = false) => {
+    const createThickAxis = useCallback((scene, spaceSize, onlyAxis = false) => {
+        // 清除旧的轴线、网格和标签
         scene.children = scene.children.filter(child => 
-            (child === scene.modelGroup) ||
-            (child instanceof THREE.Light) || 
-            (child === scene.lightGroup) ||
-            (child === scene.gridGroup) || // 保留网格
-            (child.type === 'Mesh' && child.geometry.type === 'TextGeometry') // 保留文本标签
+            !(child instanceof THREE.Mesh && child.geometry?.type === 'CylinderGeometry') && // 移除轴线
+            !(child === scene.gridGroup) && // 移除网格
+            !(child instanceof THREE.Line) // 移除刻度线
         );
     
         const axisMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -437,66 +439,141 @@ const ThreeScene = () => {
         zAxis.position.set(0, 0, spaceSize.z / 2);
         scene.add(zAxis);
     
-        createGrids(scene, spaceSize, !onlyAxis);
+        createGrids(scene, spaceSize, true); // 始终显示网格
         addTicks(scene, "x", spaceSize.x);
         addTicks(scene, "y", spaceSize.y);
         addTicks(scene, "z", spaceSize.z);
-    }, [createGrids, addTicks, spaceSize]);
+    }, [createGrids, addTicks]);
+
     
-
-
     const addAxisLabels = useCallback((scene, length) => {
-    const loader = new FontLoader();
-    loader.load(
-        'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
-        (font) => {
-        const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        
-        ['Width (X)', 'Height (Y)', 'Depth (Z)'].forEach((label, index) => {
-            const textGeometry = new TextGeometry(label, {
-            font: font,
-            size: 0.5,
-            height: 0.1,
-            });
-            const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-            
-            switch(index) {
-            case 0: // X轴
-                textMesh.position.set(length + 0.5, 0, 0);
-                break;
-            case 1: // Y轴
-                textMesh.position.set(0, length + 0.5, 0);
-                break;
-            case 2: // Z轴
-                textMesh.position.set(0, 0, length + 0.5);
-                break;
-            default:
-                break; // 添加默认情况
+        // 只清除文本标签，不清除其他内容
+        scene.children = scene.children.filter(child => 
+            !(child.type === 'Mesh' && child.geometry?.type === 'TextGeometry')
+        );
+        const loader = new FontLoader();
+        loader.load(
+            'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+            (font) => {
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                
+                ['Width (X)', 'Height (Y)', 'Depth (Z)'].forEach((label, index) => {
+                    const textGeometry = new TextGeometry(label, {
+                        font: font,
+                        size: 0.5,
+                        height: 0.1,
+                    });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    
+                    switch(index) {
+                        case 0: // X轴
+                            textMesh.position.set(length + 0.5, 0, 0);
+                            break;
+                        case 1: // Y轴
+                            textMesh.position.set(0, length + 0.5, 0);
+                            break;
+                        case 2: // Z轴
+                            textMesh.position.set(0, 0, length + 0.5);
+                            break;
+                        default:
+                            break; // 添加默认情况
+                    }
+                    
+                    scene.add(textMesh);
+                });
             }
-            
-            scene.add(textMesh);
-        });
-        }
-    );
+        );
     }, []);
 
-
-
-    const handleSpaceSizeChange = useCallback((dimension, value) => {
+const handleSpaceSizeChange = useCallback((dimension, value) => {
         const numValue = parseFloat(value);
         if (!isNaN(numValue) && numValue > 0) {
-
             setSpaceSize(prev => ({
-            ...prev,
-            [dimension]: numValue
+                ...prev,
+                [dimension]: numValue
             }));
-            if (sceneRef.current) {
-            const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
-            createThickAxis(sceneRef.current, axisLength, false);
-            addAxisLabels(sceneRef.current, axisLength);
+    
+            if (sceneRef.current && rendererRef.current && cameraRef.current) {
+                const camera = cameraRef.current;
+                const renderer = rendererRef.current;
+                
+                // 保存相机状态
+                const currentRotation = {
+                    x: cameraRotation.current.x,
+                    y: cameraRotation.current.y
+                };
+                const currentRadius = camera.position.length();
+                
+                // 更新坐标轴和标签
+                const axisLength = Math.max(
+                    dimension === 'x' ? numValue : spaceSize.x,
+                    dimension === 'y' ? numValue : spaceSize.y,
+                    dimension === 'z' ? numValue : spaceSize.z
+                );
+
+                // 临时移除事件监听器
+                renderer.domElement.removeEventListener('mousedown', handleMouseDown);
+                renderer.domElement.removeEventListener('wheel', handleWheel);
+                renderer.domElement.removeEventListener('touchstart', handleTouchStart);
+                window.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('mousemove', handleMouseMove);
+                
+                // 清除和重建场景
+                while(sceneRef.current.children.length > 0) {
+                    sceneRef.current.remove(sceneRef.current.children[0]);
+                }
+                
+                // 重新创建场景内容
+                const modelGroup = new THREE.Group();
+                sceneRef.current.add(modelGroup);
+                sceneRef.current.modelGroup = modelGroup;
+                
+                const lightGroup = new THREE.Group();
+                sceneRef.current.add(lightGroup);
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(1, 1, 1);
+                lightGroup.add(light);
+                lightGroup.add(new THREE.AmbientLight(0x404040));
+                sceneRef.current.lightGroup = lightGroup;
+                
+                createThickAxis(sceneRef.current, axisLength, false);
+                addAxisLabels(sceneRef.current, axisLength);
+                
+                // 恢复相机位置和旋转
+                camera.position.x = currentRadius * Math.cos(currentRotation.y) * Math.cos(currentRotation.x);
+                camera.position.y = currentRadius * Math.sin(currentRotation.x);
+                camera.position.z = currentRadius * Math.sin(currentRotation.y) * Math.cos(currentRotation.x);
+                camera.lookAt(0, 0, 0);
+
+                // 重新绑定事件监听器
+                renderer.domElement.addEventListener('mousedown', handleMouseDown);
+                renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
+                renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+                window.addEventListener('mouseup', handleMouseUp);
+                window.addEventListener('mousemove', handleMouseMove);
+                
+                // 重新启动渲染循环
+                if (frameIdRef.current) {
+                    cancelAnimationFrame(frameIdRef.current);
+                }
+                
+                const animate = () => {
+                    frameIdRef.current = requestAnimationFrame(animate);
+                    renderer.render(sceneRef.current, camera);
+                };
+                animate();
             }
         }
-    }, [spaceSize, createThickAxis, addAxisLabels]);
+    }, [
+        spaceSize, 
+        createThickAxis, 
+        addAxisLabels, 
+        handleMouseDown, 
+        handleMouseUp, 
+        handleMouseMove, 
+        handleWheel, 
+        handleTouchStart
+    ]);
     
     const handleCoordinateChange = useCallback((axis, value) => {
         const numValue = parseFloat(value) || 0;
@@ -605,6 +682,11 @@ const ThreeScene = () => {
         lightGroup.add(new THREE.AmbientLight(0x404040));
         sceneRef.current.lightGroup = lightGroup;
 
+        // 首次渲染轴线和标签
+        const initialAxisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+        createThickAxis(scene, spaceSize, false);
+        addAxisLabels(scene, initialAxisLength);
+
         // Animation loop
         const animate = () => {
         frameIdRef.current = requestAnimationFrame(animate);
@@ -614,21 +696,23 @@ const ThreeScene = () => {
 
         // Cleanup
         return () => {
-        if (frameIdRef.current) {
-            cancelAnimationFrame(frameIdRef.current);
-        }
-        if (mountNode && renderer.domElement) {
-            mountNode.removeChild(renderer.domElement);
-        }
-        if (sceneRef.current) {
-            sceneRef.current.clear();
-        }
-        if (rendererRef.current) {
-            rendererRef.current.dispose();
-        }
+            if (frameIdRef.current) {
+                cancelAnimationFrame(frameIdRef.current);
+            }
+            if (mountNode && renderer.domElement) {
+                mountNode.removeChild(renderer.domElement);
+            }
+            if (sceneRef.current) {
+                sceneRef.current.clear();
+            }
+            if (rendererRef.current) {
+                rendererRef.current.dispose();
+            }
         };
-    }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
-    // }, []);
+    // }, [createThickAxis, addAxisLabels, spaceSize.x, spaceSize.y, spaceSize.z]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    
 
 
     // Event Listeners Effect
@@ -713,15 +797,17 @@ const ThreeScene = () => {
         
         const scene = sceneRef.current;
         
-        createThickAxis(scene, spaceSize, !isFullScreen);
+        // 改为 false，让网格始终显示
+        createThickAxis(scene, spaceSize, false);
         addAxisLabels(scene, spaceSize);
         
         handleResize();
         
         if (cameraRef.current) {
-        cameraRef.current.lookAt(0, 0, 0);
+            cameraRef.current.lookAt(0, 0, 0);
         }
     }, [isFullScreen, createThickAxis, addAxisLabels, spaceSize, handleResize]);
+
 
     useEffect(() => {
         window.addEventListener('resize', handleResize);
