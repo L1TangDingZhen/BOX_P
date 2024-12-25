@@ -55,6 +55,11 @@ const IssuesAndTodos = () => {
         <h2 style={styles.subHeader}>待商讨</h2>
         <ul style={styles.list}>
           <li style={styles.strikethrough}>空间的xyz是否取最大值当作数值或者任由输入</li>
+          <li>已存在的模型下重新设置空间尺寸情况</li>
+          <li>在设置新的空间尺寸后，摄像机的角度是归零还是保持原有角度</li>
+          <li>三视图切换后，视角会错乱</li>
+          <li>先设置长方体尺寸后，再设置空间尺寸没有设置检测机制</li>
++
         </ul>
       </div>
 
@@ -77,16 +82,18 @@ const IssuesAndTodos = () => {
       <div style={styles.section}>
         <h2 style={styles.subHeader}>bug to fixed</h2>
         <ul style={styles.list}>
-          <li>页面缩略图在全屏后大小有变化</li>
-          <li>三视图角度</li>
+          <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
+          <li style={styles.strikethrough}>三视图角度</li>
+          <li style={styles.strikethrough}>自定义修改空间尺寸后，在未全屏的状态下，无法转动视角</li>
+
           <li>用作分层的进度条</li>
           <li>物理的放置顺序和列表</li>
           <li>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
           <li>前一个物体变为灰色</li>
           <li>iPhone和iPad无法向下滑动退出全屏状态</li>
-          <li>自定义修改空间尺寸后，在未全屏的状态下，无法转动视角</li>
           <li>超大数值会卡住</li>
           <li>标签的长度是取最大值</li>
+          <li>先设置长方体尺寸后，再设置空间尺寸没有设置检测机制</li>
 
         </ul>
       </div>

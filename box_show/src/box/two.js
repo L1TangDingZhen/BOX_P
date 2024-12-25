@@ -26,6 +26,7 @@ const ThreeScene = () => {
     // --- Constants ---
     const colorSet = new Set();
     const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+    const [viewMode, setViewMode] = useState('free'); // 'free', 'front', 'side', 'top'
 
       // 辅助函数
     const getRandomColor = () => {
@@ -62,247 +63,6 @@ const ThreeScene = () => {
             cameraRef.current.updateProjectionMatrix();
         }
     }, [rendererRef, mountRef, cameraRef]);
-
-
-    // 然后修改 handleTouchMove
-    const handleTouchMove = useCallback((e) => {
-        e.preventDefault();
-
-        // iOS 设备的滑动退出处理
-        if (isIOS && isFullScreen) {
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-            const threshold = window.innerHeight / 4;
-            console.log('Delta Y:', deltaY, 'Threshold:', threshold);
-            
-            if (deltaY > threshold) {
-                // 使用 ref 调用 toggleFullScreen
-                toggleFullScreenRef.current?.();
-                return;
-            }
-        }
-        
-        if (!cameraRef.current || !isMouseDown.current) return;
-        
-        const camera = cameraRef.current;
-
-        if (e.touches.length === 2) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const currentDistance = Math.sqrt(
-                Math.pow(touch2.clientX - touch1.clientX, 2) +
-                Math.pow(touch2.clientY - touch1.clientY, 2)
-            );
-
-            if (mousePosition.current.initialPinchDistance) {
-                const scale = currentDistance / mousePosition.current.initialPinchDistance;
-                const zoomSpeed = 0.5;
-                const radius = camera.position.length();
-                const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
-
-                const minRadius = 5;
-                const maxRadius = 50;
-                if (newRadius >= minRadius && newRadius <= maxRadius) {
-                    const scaleFactor = newRadius / radius;
-                    camera.position.multiplyScalar(scaleFactor);
-                }
-                camera.lookAt(0, 0, 0);
-            }
-            mousePosition.current.initialPinchDistance = currentDistance;
-        } else if (e.touches.length === 1) {
-            const deltaX = e.touches[0].clientX - mousePosition.current.x;
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-
-            cameraRotation.current.x += deltaY * 0.01;
-            cameraRotation.current.y += deltaX * 0.01;
-
-            const radius = camera.position.length();
-            camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-            camera.position.y = radius * Math.sin(cameraRotation.current.x);
-            camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-            
-            camera.lookAt(0, 0, 0);
-            
-            mousePosition.current = {
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY
-            };
-        }
-    }, [isIOS, isFullScreen]); // 移除 toggleFullScreen 依赖
-
-
-    // 修改 toggleFullScreen
-    const toggleFullScreen = useCallback(async () => {
-        try {
-            if (!isFullScreen) {
-                setIsFullScreen(true);
-                if (isIOS) {
-                    if (mountRef.current) {
-                        mountRef.current.style.position = "fixed";
-                        mountRef.current.style.top = "0";
-                        mountRef.current.style.left = "0";
-                        mountRef.current.style.width = "100vw";
-                        mountRef.current.style.height = "100vh";
-                        mountRef.current.style.zIndex = "9999";
-                        mountRef.current.style.backgroundColor = "#f0f0f0";
-
-                        mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    }
-                } else {
-                    if (mountRef.current?.requestFullscreen) {
-                        await mountRef.current.requestFullscreen();
-                        setTimeout(handleResize, 100);
-                    } else if (mountRef.current?.webkitRequestFullscreen) {
-                        await mountRef.current.webkitRequestFullscreen();
-                    }
-                }
-            } else {
-                setIsFullScreen(false);
-                if (isIOS) {
-                    if (mountRef.current) {
-                        mountRef.current.style.position = "";
-                        mountRef.current.style.top = "";
-                        mountRef.current.style.left = "";
-                        mountRef.current.style.width = "";
-                        mountRef.current.style.height = "";
-                        mountRef.current.style.zIndex = "";
-
-                        mountRef.current.removeEventListener('touchmove', handleTouchMove);
-                    }
-                } else {
-                    if (document.exitFullscreen) {
-                        await document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        await document.webkitExitFullscreen();
-                    }
-                }
-            }
-        } catch (err) {
-            console.error("Error toggling fullscreen:", err);
-        }
-    }, [isFullScreen, isIOS, handleTouchMove, handleResize]);
-
-
-    // 添加新的 useEffect 来更新 ref
-    useEffect(() => {
-        toggleFullScreenRef.current = toggleFullScreen;
-    }, [toggleFullScreen]);
-
-
-    // --- Event Handlers ---
-    const handleMouseDown = useCallback((e) => {
-        isMouseDown.current = true;
-        mousePosition.current = {
-            x: e.clientX,
-            y: e.clientY
-        };
-    }, []);
-
-    const handleMouseUp = useCallback(() => {
-        isMouseDown.current = false;
-    }, []);
-
-
-    const handleMouseMove = useCallback((e) => {
-
-        e.preventDefault();
-        // iOS 设备的滑动退出处理
-        if (isIOS && isFullScreen) {
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-            // 降低退出阈值为屏幕高度的四分之一
-            const threshold = window.innerHeight / 4;
-            console.log('Delta Y:', deltaY, 'Threshold:', threshold); // 调试输出
-            
-            if (deltaY > threshold) {
-                toggleFullScreen();
-                return;
-            }
-        }
-
-        if (!isMouseDown.current || !cameraRef.current) return;
-    
-        const deltaX = e.clientX - mousePosition.current.x;
-        const deltaY = e.clientY - mousePosition.current.y;
-    
-        cameraRotation.current.x += deltaY * 0.01;
-        cameraRotation.current.y += deltaX * 0.01;
-    
-        const camera = cameraRef.current;
-        const radius = Math.sqrt(
-          camera.position.x ** 2 + 
-          camera.position.y ** 2 + 
-          camera.position.z ** 2
-        );
-    
-        camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-        camera.position.y = radius * Math.sin(cameraRotation.current.x);
-        camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
-    
-        camera.lookAt(0, 0, 0);
-        
-        mousePosition.current = {
-            x: e.clientX,
-            y: e.clientY
-        };
-    }, [isFullScreen, isIOS, toggleFullScreen]);
-    
-    
-    const handleWheel = useCallback((e) => {
-        const camera = cameraRef.current;
-        if (!camera) return;
-
-        const zoomSpeed = 0.1;
-        const direction = e.deltaY > 0 ? 1 : -1;
-        const radius = Math.sqrt(
-        camera.position.x ** 2 + 
-        camera.position.y ** 2 + 
-        camera.position.z ** 2
-        );
-
-        const newRadius = radius * (1 + direction * zoomSpeed);
-        const minRadius = 5;
-        const maxRadius = 50;
-        
-        if (newRadius >= minRadius && newRadius <= maxRadius) {
-        const scale = newRadius / radius;
-        camera.position.multiplyScalar(scale);
-        camera.lookAt(0, 0, 0);
-        }
-    }, []);
-
-    const handleTouchStart = useCallback((e) => {
-        e.preventDefault();
-        isMouseDown.current = true;
-        
-        if (e.touches.length === 2) {
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const distance = Math.sqrt(
-            Math.pow(touch2.clientX - touch1.clientX, 2) +
-            Math.pow(touch2.clientY - touch1.clientY, 2)
-                );
-            
-            mousePosition.current = {
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY,
-                initialPinchDistance: distance
-            };
-            } else {
-            mousePosition.current = {
-                x: e.touches[0].clientX,
-                y: e.touches[0].clientY
-            };
-        }
-    }, []);
-
-
-
-
-
-
-    const handleTouchEnd = useCallback(() => {
-        isMouseDown.current = false;
-    }, []);
-
 
     const createGrids = useCallback((scene, spaceSize, visible = true) => {
         const gridGroup = new THREE.Group();
@@ -355,9 +115,7 @@ const ThreeScene = () => {
     
         scene.gridGroup = gridGroup;
     }, []);
-
-
-
+    
     const addTicks = useCallback((scene, axis, length, newSpaceSize) => {
         const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
         const fontLoader = new FontLoader();
@@ -485,95 +243,363 @@ const ThreeScene = () => {
         );
     }, []);
 
-const handleSpaceSizeChange = useCallback((dimension, value) => {
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue) && numValue > 0) {
-            setSpaceSize(prev => ({
-                ...prev,
-                [dimension]: numValue
-            }));
-    
-            if (sceneRef.current && rendererRef.current && cameraRef.current) {
-                const camera = cameraRef.current;
-                const renderer = rendererRef.current;
-                
-                // 保存相机状态
-                const currentRotation = {
-                    x: cameraRotation.current.x,
-                    y: cameraRotation.current.y
-                };
-                const currentRadius = camera.position.length();
-                
-                // 更新坐标轴和标签
-                const axisLength = Math.max(
-                    dimension === 'x' ? numValue : spaceSize.x,
-                    dimension === 'y' ? numValue : spaceSize.y,
-                    dimension === 'z' ? numValue : spaceSize.z
-                );
+    // 然后修改 handleTouchMove
+    const handleTouchMove = useCallback((e) => {
+        e.preventDefault();
 
-                // 临时移除事件监听器
-                renderer.domElement.removeEventListener('mousedown', handleMouseDown);
-                renderer.domElement.removeEventListener('wheel', handleWheel);
-                renderer.domElement.removeEventListener('touchstart', handleTouchStart);
-                window.removeEventListener('mouseup', handleMouseUp);
-                window.removeEventListener('mousemove', handleMouseMove);
-                
-                // 清除和重建场景
-                while(sceneRef.current.children.length > 0) {
-                    sceneRef.current.remove(sceneRef.current.children[0]);
-                }
-                
-                // 重新创建场景内容
-                const modelGroup = new THREE.Group();
-                sceneRef.current.add(modelGroup);
-                sceneRef.current.modelGroup = modelGroup;
-                
-                const lightGroup = new THREE.Group();
-                sceneRef.current.add(lightGroup);
-                const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(1, 1, 1);
-                lightGroup.add(light);
-                lightGroup.add(new THREE.AmbientLight(0x404040));
-                sceneRef.current.lightGroup = lightGroup;
-                
-                createThickAxis(sceneRef.current, axisLength, false);
-                addAxisLabels(sceneRef.current, axisLength);
-                
-                // 恢复相机位置和旋转
-                camera.position.x = currentRadius * Math.cos(currentRotation.y) * Math.cos(currentRotation.x);
-                camera.position.y = currentRadius * Math.sin(currentRotation.x);
-                camera.position.z = currentRadius * Math.sin(currentRotation.y) * Math.cos(currentRotation.x);
-                camera.lookAt(0, 0, 0);
-
-                // 重新绑定事件监听器
-                renderer.domElement.addEventListener('mousedown', handleMouseDown);
-                renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
-                renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-                window.addEventListener('mouseup', handleMouseUp);
-                window.addEventListener('mousemove', handleMouseMove);
-                
-                // 重新启动渲染循环
-                if (frameIdRef.current) {
-                    cancelAnimationFrame(frameIdRef.current);
-                }
-                
-                const animate = () => {
-                    frameIdRef.current = requestAnimationFrame(animate);
-                    renderer.render(sceneRef.current, camera);
-                };
-                animate();
+        // iOS 设备的滑动退出处理
+        if (isIOS && isFullScreen) {
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            const threshold = window.innerHeight / 4;
+            console.log('Delta Y:', deltaY, 'Threshold:', threshold);
+            
+            if (deltaY > threshold) {
+                // 使用 ref 调用 toggleFullScreen
+                toggleFullScreenRef.current?.();
+                return;
             }
         }
-    }, [
-        spaceSize, 
-        createThickAxis, 
-        addAxisLabels, 
-        handleMouseDown, 
-        handleMouseUp, 
-        handleMouseMove, 
-        handleWheel, 
-        handleTouchStart
-    ]);
+        
+        if (!cameraRef.current || !isMouseDown.current) return;
+        
+        const camera = cameraRef.current;
+
+        if (e.touches.length === 2) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.sqrt(
+                Math.pow(touch2.clientX - touch1.clientX, 2) +
+                Math.pow(touch2.clientY - touch1.clientY, 2)
+            );
+
+            if (mousePosition.current.initialPinchDistance) {
+                const scale = currentDistance / mousePosition.current.initialPinchDistance;
+                const zoomSpeed = 0.5;
+                const radius = camera.position.length();
+                const newRadius = radius * (1 + (1 - scale) * zoomSpeed);
+
+                const minRadius = 5;
+                const maxRadius = 50;
+                if (newRadius >= minRadius && newRadius <= maxRadius) {
+                    const scaleFactor = newRadius / radius;
+                    camera.position.multiplyScalar(scaleFactor);
+                }
+                camera.lookAt(0, 0, 0);
+            }
+            mousePosition.current.initialPinchDistance = currentDistance;
+        } else if (e.touches.length === 1) {
+            const deltaX = e.touches[0].clientX - mousePosition.current.x;
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+
+            cameraRotation.current.x += deltaY * 0.01;
+            cameraRotation.current.y += deltaX * 0.01;
+
+            const radius = camera.position.length();
+            camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+            camera.position.y = radius * Math.sin(cameraRotation.current.x);
+            camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+            
+            camera.lookAt(0, 0, 0);
+            
+            mousePosition.current = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            };
+        }
+    }, [isIOS, isFullScreen]);
+
+
+    const toggleFullScreen = useCallback(async () => {
+        try {
+            if (!isFullScreen) {
+                setIsFullScreen(true);
+                if (isIOS) {
+                    if (mountRef.current) {
+                        mountRef.current.style.position = "fixed";
+                        mountRef.current.style.top = "0";
+                        mountRef.current.style.left = "0";
+                        mountRef.current.style.width = "100vw";
+                        mountRef.current.style.height = "100vh";
+                        mountRef.current.style.zIndex = "9999";
+                        mountRef.current.style.backgroundColor = "#f0f0f0";
+    
+                        mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    }
+                } else {
+                    if (mountRef.current?.requestFullscreen) {
+                        await mountRef.current.requestFullscreen();
+                        setTimeout(() => {
+                            handleResize();
+                            // 确保在全屏后重新创建轴和标签
+                            const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+                            createThickAxis(sceneRef.current, spaceSize, false);
+                            addAxisLabels(sceneRef.current, axisLength);
+                        }, 100);
+                    } else if (mountRef.current?.webkitRequestFullscreen) {
+                        await mountRef.current.webkitRequestFullscreen();
+                    }
+                }
+            } else {
+                setIsFullScreen(false);
+                if (isIOS) {
+                    if (mountRef.current) {
+                        mountRef.current.style.position = "";
+                        mountRef.current.style.top = "";
+                        mountRef.current.style.left = "";
+                        mountRef.current.style.width = "";
+                        mountRef.current.style.height = "";
+                        mountRef.current.style.zIndex = "";
+    
+                        mountRef.current.removeEventListener('touchmove', handleTouchMove);
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    }
+                }
+                
+                // 退出全屏后也重新创建轴和标签
+                setTimeout(() => {
+                    handleResize();
+                    const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+                    createThickAxis(sceneRef.current, spaceSize, false);
+                    addAxisLabels(sceneRef.current, axisLength);
+                }, 100);
+            }
+        } catch (err) {
+            console.error("Error toggling fullscreen:", err);
+        }
+    }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
+
+
+    // 添加新的 useEffect 来更新 ref
+    useEffect(() => {
+        toggleFullScreenRef.current = toggleFullScreen;
+    }, [toggleFullScreen]);
+
+
+    // --- Event Handlers ---
+    const handleMouseDown = useCallback((e) => {
+        isMouseDown.current = true;
+        mousePosition.current = {
+            x: e.clientX,
+            y: e.clientY
+        };
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        isMouseDown.current = false;
+    }, []);
+
+
+    const handleMouseMove = useCallback((e) => {
+
+        e.preventDefault();
+        // iOS 设备的滑动退出处理
+        if (isIOS && isFullScreen) {
+            const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            // 降低退出阈值为屏幕高度的四分之一
+            const threshold = window.innerHeight / 4;
+            console.log('Delta Y:', deltaY, 'Threshold:', threshold); // 调试输出
+            
+            if (deltaY > threshold) {
+                toggleFullScreen();
+                return;
+            }
+        }
+
+        if (!isMouseDown.current || !cameraRef.current) return;
+
+        // 如果不是自由视角模式，第一次拖动时切换到自由模式
+        if (viewMode !== 'free') {
+            setViewMode('free');
+            // 重要：重置相机的 up 向量为默认值
+            cameraRef.current.up.set(0, 1, 0);
+        }
+
+    
+        const deltaX = e.clientX - mousePosition.current.x;
+        const deltaY = e.clientY - mousePosition.current.y;
+    
+        cameraRotation.current.x += deltaY * 0.01;
+        cameraRotation.current.y += deltaX * 0.01;
+
+
+        // 限制垂直旋转角度以避免翻转
+        cameraRotation.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.current.x));
+
+    
+        const camera = cameraRef.current;
+        const radius = Math.sqrt(
+          camera.position.x ** 2 + 
+          camera.position.y ** 2 + 
+          camera.position.z ** 2
+        );
+    
+        camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+        camera.position.y = radius * Math.sin(cameraRotation.current.x);
+        camera.position.z = radius * Math.sin(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
+    
+        camera.lookAt(0, 0, 0);
+        
+        mousePosition.current = {
+            x: e.clientX,
+            y: e.clientY
+        };
+    }, [isFullScreen, isIOS, toggleFullScreen, viewMode]);
+    
+    
+    const handleWheel = useCallback((e) => {
+        const camera = cameraRef.current;
+        if (!camera) return;
+
+        const zoomSpeed = 0.1;
+        const direction = e.deltaY > 0 ? 1 : -1;
+        const radius = Math.sqrt(
+        camera.position.x ** 2 + 
+        camera.position.y ** 2 + 
+        camera.position.z ** 2
+        );
+
+        const newRadius = radius * (1 + direction * zoomSpeed);
+        const minRadius = 5;
+        const maxRadius = 50;
+        
+        if (newRadius >= minRadius && newRadius <= maxRadius) {
+        const scale = newRadius / radius;
+        camera.position.multiplyScalar(scale);
+        camera.lookAt(0, 0, 0);
+        }
+    }, []);
+
+    const handleTouchStart = useCallback((e) => {
+        e.preventDefault();
+        isMouseDown.current = true;
+        
+        if (e.touches.length === 2) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const distance = Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) +
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+            
+            mousePosition.current = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY,
+                initialPinchDistance: distance
+            };
+            } else {
+            mousePosition.current = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            };
+        }
+    }, []);
+
+
+    const handleTouchEnd = useCallback(() => {
+        isMouseDown.current = false;
+    }, []);
+
+
+    const handleSpaceSizeChange = useCallback((dimension, value) => {
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue) && numValue > 0) {
+                setSpaceSize(prev => ({
+                    ...prev,
+                    [dimension]: numValue
+                }));
+        
+                if (sceneRef.current && rendererRef.current && cameraRef.current) {
+                    const camera = cameraRef.current;
+                    const renderer = rendererRef.current;
+                    
+                    // 保存相机状态
+                    const currentRotation = {
+                        x: cameraRotation.current.x || 0,  // 添加默认值
+                        y: cameraRotation.current.y || 0   // 添加默认值
+                    };
+                    const currentRadius = camera.position.length();
+                    
+                    // 更新坐标轴和标签
+                    const axisLength = Math.max(
+                        dimension === 'x' ? numValue : spaceSize.x,
+                        dimension === 'y' ? numValue : spaceSize.y,
+                        dimension === 'z' ? numValue : spaceSize.z
+                    );
+
+                    // 临时移除事件监听器
+                    renderer.domElement.removeEventListener('mousedown', handleMouseDown);
+                    renderer.domElement.removeEventListener('wheel', handleWheel);
+                    renderer.domElement.removeEventListener('touchstart', handleTouchStart);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    
+                    // 清除和重建场景
+                    while(sceneRef.current.children.length > 0) {
+                        sceneRef.current.remove(sceneRef.current.children[0]);
+                    }
+                    
+                    // 重新创建场景内容
+                    const modelGroup = new THREE.Group();
+                    sceneRef.current.add(modelGroup);
+                    sceneRef.current.modelGroup = modelGroup;
+                    
+                    const lightGroup = new THREE.Group();
+                    sceneRef.current.add(lightGroup);
+                    const light = new THREE.DirectionalLight(0xffffff, 1);
+                    light.position.set(1, 1, 1);
+                    lightGroup.add(light);
+                    lightGroup.add(new THREE.AmbientLight(0x404040));
+                    sceneRef.current.lightGroup = lightGroup;
+                    
+                    createThickAxis(sceneRef.current, axisLength, false);
+                    addAxisLabels(sceneRef.current, axisLength);
+                    
+                    // 恢复相机位置和旋转 - 这里使用默认视角
+                    if (currentRotation.x === 0 && currentRotation.y === 0) {
+                        // 如果是初始状态，使用默认的倾斜视角
+                        camera.position.set(15, 10, 15);
+                    } else {
+                        // 否则使用保存的旋转状态
+                        camera.position.x = currentRadius * Math.cos(currentRotation.y) * Math.cos(currentRotation.x);
+                        camera.position.y = currentRadius * Math.sin(currentRotation.x);
+                        camera.position.z = currentRadius * Math.sin(currentRotation.y) * Math.cos(currentRotation.x);
+                    }
+                    camera.lookAt(0, 0, 0);
+
+                    // 重新绑定事件监听器
+                    renderer.domElement.addEventListener('mousedown', handleMouseDown);
+                    renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
+                    renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    window.addEventListener('mouseup', handleMouseUp);
+                    window.addEventListener('mousemove', handleMouseMove);
+                    
+                    // 重新启动渲染循环
+                    if (frameIdRef.current) {
+                        cancelAnimationFrame(frameIdRef.current);
+                    }
+                    
+                    const animate = () => {
+                        frameIdRef.current = requestAnimationFrame(animate);
+                        renderer.render(sceneRef.current, camera);
+                    };
+                    animate();
+                }
+            }
+        }, [
+            spaceSize, 
+            createThickAxis, 
+            addAxisLabels, 
+            handleMouseDown, 
+            handleMouseUp, 
+            handleMouseMove, 
+            handleWheel, 
+            handleTouchStart
+        ]);
     
     const handleCoordinateChange = useCallback((axis, value) => {
         const numValue = parseFloat(value) || 0;
@@ -621,6 +647,45 @@ const handleSpaceSizeChange = useCallback((dimension, value) => {
 
 
 
+    // 修改视图切换函数
+    const handleViewChange = useCallback((view) => {
+        if (!cameraRef.current) return;
+
+        const camera = cameraRef.current;
+        const distance = Math.max(spaceSize.x, spaceSize.y, spaceSize.z) * 2;
+
+        // 保存当前视图模式
+        setViewMode(view);
+
+        switch (view) {
+            case 'front':
+                camera.position.set(0, 0, distance);
+                camera.up.set(0, 1, 0);
+                break;
+            case 'side':
+                camera.position.set(distance, 0, 0);
+                camera.up.set(0, 1, 0);
+                break;
+            case 'top':
+                camera.position.set(0, distance, 0);
+                camera.up.set(0, 0, -1);
+                break;
+            case 'free':
+                // 恢复到默认的自由视角
+                camera.position.set(15, 10, 15);
+                camera.up.set(0, 1, 0);
+                break;
+            default:
+                break;
+        }
+
+        // 重置旋转状态
+        cameraRotation.current = { x: 0, y: 0 };
+        camera.lookAt(0, 0, 0);
+
+    }, [spaceSize]);
+
+
 
     // --- 完整的全屏变化 Effect ---
     useEffect(() => {
@@ -666,6 +731,7 @@ const handleSpaceSizeChange = useCallback((dimension, value) => {
         const width = mountRef.current.clientWidth;
         const height = mountRef.current.clientHeight;
         renderer.setSize(width, height);
+
         mountRef.current.appendChild(renderer.domElement);
 
         // Axis and labels
@@ -985,36 +1051,81 @@ const handleSpaceSizeChange = useCallback((dimension, value) => {
             >
                 添加长方体
             </button>
+
+
+
             </div>
         </div>
     
         {/* 右侧Three.js渲染区域 */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex items-center justify-center bg-gray-100">
+            <div 
+                ref={mountRef} 
+                style={{ 
+                    width: '100%',
+                    height: '600px',
+                    backgroundColor: '#f0f0f0'
+                }}
+            />
             <button
-            onClick={toggleFullScreen}
-            className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
+                onClick={toggleFullScreen}
+                className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
             >
-            {isFullScreen ? (
-                <Minimize2 className="w-6 h-6" />
-            ) : (
-                <Maximize2 className="w-6 h-6" />
-            )}
+                {isFullScreen ? (
+                    <Minimize2 className="w-6 h-6" />
+                ) : (
+                    <Maximize2 className="w-6 h-6" />
+                )}
             </button>
 
             {isFullScreen && (
-            <button 
-                onClick={toggleFullScreen} 
-                className="absolute top-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
-            >
-                <X className="w-6 h-6" />
-            </button>
+                <button 
+                    onClick={toggleFullScreen} 
+                    className="absolute top-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
+                >
+                    <X className="w-6 h-6" />
+                </button>
             )}
-            
-            <div 
-            ref={mountRef} 
-            className="w-full h-full" 
-            style={{ minHeight: '600px' }}
-            />
+
+
+            {/* 视图控制按钮组 */}
+            <div className="absolute bottom-4 left-4 flex gap-2 z-50 flex-wrap max-w-[200px]">
+                <button
+                    onClick={() => handleViewChange('front')}
+                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'front' ? 'ring-2 ring-white' : ''}`}
+                >
+                    前视图
+                </button>
+                <button
+                    onClick={() => handleViewChange('side')}
+                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'side' ? 'ring-2 ring-white' : ''}`}
+                >
+                    侧视图
+                </button>
+                <button
+                    onClick={() => handleViewChange('top')}
+                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'top' ? 'ring-2 ring-white' : ''}`}
+                >
+                    俯视图
+                </button>
+                {viewMode !== 'free' && (
+                    <button
+                        onClick={() => handleViewChange('free')}
+                        className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all"
+                    >
+                        自由视角
+                    </button>
+                )}
+            </div>
+
+            {/* 视图模式提示 */}
+            {viewMode !== 'free' && (
+                <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded">
+                    当前：{viewMode === 'front' ? '前视图' : viewMode === 'side' ? '侧视图' : '俯视图'}
+                    <br />
+                    <span className="text-sm opacity-75">拖动或点击自由视角按钮可退出固定视图</span>
+                </div>
+            )}
         </div>
         </div>
     );
