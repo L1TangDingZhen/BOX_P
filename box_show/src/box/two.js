@@ -377,33 +377,47 @@ const ThreeScene = () => {
 
 
     const calculateLayers = useCallback(() => {
-        const newLayers = [];
+        if (cubes.length === 0) {
+            setLayers([]); // 如果没有立方体，就设置为空数组
+            return;
+        }
+    
         const sortedCubes = [...cubes].sort((a, b) => a.y - b.y);
+        const layerMap = new Map(); // 用于存储每个立方体的层级
         
+        // 第一步：计算每个立方体的层级
         sortedCubes.forEach(cube => {
-            let layer = 0;
-            // 检查这个立方体下面是否有其他立方体
+            let maxLayerBelow = -1; // 默认为-1，表示底层
+    
+            // 检查当前立方体下面的所有立方体
             sortedCubes.forEach(otherCube => {
                 if (cube !== otherCube && 
-                    otherCube.y + otherCube.height <= cube.y &&
+                    otherCube.y + otherCube.height <= cube.y && // 在当前立方体下面
                     cube.x < otherCube.x + otherCube.width &&
                     cube.x + cube.width > otherCube.x &&
                     cube.z < otherCube.z + otherCube.depth &&
                     cube.z + cube.depth > otherCube.z) {
-                    layer = Math.max(layer, 1);
+                    // 找到下方立方体的层级，取最大值加1
+                    const lowerCubeLayer = layerMap.get(otherCube) || 0;
+                    maxLayerBelow = Math.max(maxLayerBelow, lowerCubeLayer);
                 }
             });
-            newLayers[layer] = newLayers[layer] || [];
+    
+            // 当前立方体的层级是下方最高层级+1
+            layerMap.set(cube, maxLayerBelow + 1);
+        });
+    
+        // 第二步：根据层级分组
+        const maxLayer = Math.max(...Array.from(layerMap.values()));
+        const newLayers = Array(maxLayer + 1).fill(null).map(() => []);
+        
+        sortedCubes.forEach(cube => {
+            const layer = layerMap.get(cube);
             newLayers[layer].push(cube);
         });
-        
-        setLayers(newLayers.filter(layer => layer)); // 移除空层
+    
+        setLayers(newLayers);
     }, [cubes]);
-
-    useEffect(() => {
-        calculateLayers();
-    }, [cubes, calculateLayers]);
-
 
     // 添加新的 useEffect 来更新 ref
     useEffect(() => {
@@ -873,10 +887,16 @@ const ThreeScene = () => {
         }
     }, [isIOS, isFullScreen, handleTouchMove]);
 
+
+    // 添加新的 effect 来计算层级
+    useEffect(() => {
+        calculateLayers();
+    }, [cubes, calculateLayers]);
+
     // 在 useEffect(() => { ... }, [coordinates, dimensions, cubes]) 中添加:
     useEffect(() => {
         if (!sceneRef.current) return;
-
+    
         cubes.forEach((cube) => {
             if (cube.mesh) {
                 // 更新位置
