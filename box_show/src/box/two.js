@@ -27,6 +27,8 @@ const ThreeScene = () => {
     const colorSet = new Set();
     const isIOS = /iPhone|iPad/.test(navigator.userAgent);
     const [viewMode, setViewMode] = useState('free'); // 'free', 'front', 'side', 'top'
+    const [layers, setLayers] = useState([]); // 存储每一层的模型
+    const [currentLayer, setCurrentLayer] = useState(-1); // -1 表示不高亮任何层
 
       // 辅助函数
     const getRandomColor = () => {
@@ -372,6 +374,35 @@ const ThreeScene = () => {
             console.error("Error toggling fullscreen:", err);
         }
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
+
+
+    const calculateLayers = useCallback(() => {
+        const newLayers = [];
+        const sortedCubes = [...cubes].sort((a, b) => a.y - b.y);
+        
+        sortedCubes.forEach(cube => {
+            let layer = 0;
+            // 检查这个立方体下面是否有其他立方体
+            sortedCubes.forEach(otherCube => {
+                if (cube !== otherCube && 
+                    otherCube.y + otherCube.height <= cube.y &&
+                    cube.x < otherCube.x + otherCube.width &&
+                    cube.x + cube.width > otherCube.x &&
+                    cube.z < otherCube.z + otherCube.depth &&
+                    cube.z + cube.depth > otherCube.z) {
+                    layer = Math.max(layer, 1);
+                }
+            });
+            newLayers[layer] = newLayers[layer] || [];
+            newLayers[layer].push(cube);
+        });
+        
+        setLayers(newLayers.filter(layer => layer)); // 移除空层
+    }, [cubes]);
+
+    useEffect(() => {
+        calculateLayers();
+    }, [cubes, calculateLayers]);
 
 
     // 添加新的 useEffect 来更新 ref
@@ -842,20 +873,27 @@ const ThreeScene = () => {
         }
     }, [isIOS, isFullScreen, handleTouchMove]);
 
-    // 更新立方体
+    // 在 useEffect(() => { ... }, [coordinates, dimensions, cubes]) 中添加:
     useEffect(() => {
         if (!sceneRef.current) return;
-    
+
         cubes.forEach((cube) => {
-        if (cube.mesh) {
-            cube.mesh.position.set(
-            cube.x + cube.width / 2,
-            cube.y + cube.height / 2,
-            cube.z + cube.depth / 2
-            );
-        }
+            if (cube.mesh) {
+                // 更新位置
+                cube.mesh.position.set(
+                    cube.x + cube.width / 2,
+                    cube.y + cube.height / 2,
+                    cube.z + cube.depth / 2
+                );
+                // 更新透明度
+                cube.mesh.material.opacity = 
+                    currentLayer === -1 || 
+                    layers.findIndex(layer => layer.includes(cube)) === currentLayer 
+                        ? 0.8 
+                        : 0.3;
+            }
         });
-    }, [coordinates, dimensions, cubes]);
+    }, [coordinates, dimensions, cubes, currentLayer, layers]);
 
     // 处理全屏变化
     useEffect(() => {
@@ -1032,7 +1070,7 @@ const ThreeScene = () => {
                     const material = new THREE.MeshPhongMaterial({
                     color: newCube.color,
                     transparent: true,
-                    opacity: 0.8,
+                    opacity: currentLayer === -1 || layers.findIndex(layer => layer.includes(newCube)) === currentLayer ? 0.8 : 0.3
                     });
                     const cubeMesh = new THREE.Mesh(geometry, material);
                     cubeMesh.position.set(
@@ -1086,6 +1124,24 @@ const ThreeScene = () => {
                     <X className="w-6 h-6" />
                 </button>
             )}
+
+            {/* 在右侧Three.js渲染区域的 div 内部添加,和其他按钮平级 */}
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 p-2 rounded">
+                <input
+                    type="range"
+                    min="-1"
+                    max={layers.length - 1}
+                    value={currentLayer}
+                    onChange={(e) => setCurrentLayer(parseInt(e.target.value))}
+                    className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                        writingMode: 'bt-lr',
+                        transform: 'rotate(270deg)',
+                        transformOrigin: 'center',
+                        height: '200px'
+                    }}
+                />
+            </div>
 
 
             {/* 视图控制按钮组 */}

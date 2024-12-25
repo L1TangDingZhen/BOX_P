@@ -59,7 +59,6 @@ const IssuesAndTodos = () => {
           <li>在设置新的空间尺寸后，摄像机的角度是归零还是保持原有角度</li>
           <li>三视图切换后，视角会错乱</li>
           <li>先设置长方体尺寸后，再设置空间尺寸没有设置检测机制</li>
-+
         </ul>
       </div>
 
@@ -150,21 +149,3 @@ const styles = {
 
 
 export default IssuesAndTodos;
-
-
-
-// 3. 检查设备特性
-// 在移动设备上，触摸事件可能受到其他浏览器行为（如滚动、双指缩放等）的影响。可以通过 event.preventDefault() 禁用默认行为。
-
-// 示例：
-
-// javascript
-// 复制代码
-// const handleTouchStart = (e) => {
-//   e.preventDefault(); // 禁用默认行为
-//   isMouseDown.current = true;
-//   mousePosition.current = {
-//     x: e.touches[0].clientX,
-//     y: e.touches[0].clientY,
-//   };
-// };
