@@ -2,7 +2,34 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
-import { Maximize2, X, Minimize2 } from 'lucide-react';
+
+// MUI Components
+import { 
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Button,
+    Card,
+    CardContent,
+    Slider,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
+    Box,
+} from '@mui/material';
+
+// MUI Icons
+import {
+    ExpandMore as ExpandMoreIcon,
+    Settings as SettingsIcon,
+    Fullscreen as FullscreenIcon,
+    FullscreenExit as FullscreenExitIcon,
+    Close as CloseIcon,
+    ViewInAr as ViewInArIcon,
+} from '@mui/icons-material';
+
+
 
 const ThreeScene = () => {
     // --- Refs ---
@@ -22,6 +49,9 @@ const ThreeScene = () => {
     const [cubes, setCubes] = useState([]);
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [tabValue, setTabValue] = useState(0);
+
+
 
     // --- Constants ---
     const colorSet = new Set();
@@ -940,316 +970,341 @@ const ThreeScene = () => {
     }, [handleResize]);
 
     return (
-        <div className="w-full h-full flex">
-        {/* 左侧控制面板 */}
-        <div className="w-64 p-4 bg-gray-100">
-            <h2 className="text-lg font-bold mb-4">参数控制</h2>
-            <div className="space-y-6">
-            {/* 空间尺寸控制 */}
-            <div>
-                <h3 className="text-md font-semibold mb-2">空间尺寸</h3>
-                <div className="space-y-2">
-                <div>
-                    <label className="block text-sm font-medium">X轴长度</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={spaceSize.x}
-                    onChange={(e) => handleSpaceSizeChange('x', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Y轴长度</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={spaceSize.y}
-                    onChange={(e) => handleSpaceSizeChange('y', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Z轴长度</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={spaceSize.z}
-                    onChange={(e) => handleSpaceSizeChange('z', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                </div>
-            </div>
+        <Box sx={{ 
+            display: 'flex', 
+            height: '100vh',
+            bgcolor: '#f5f5f5'
+        }}>
+            {/* 左侧控制面板 */}
+            <Box sx={{ 
+                width: 320, 
+                borderRight: 1, 
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+            }}>
+                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+                    <Typography variant="h6">3D Scene Controls</Typography>
+                </Box>
 
-            {/* 起始位置控制 */}
-            <div>
-                <h3 className="text-md font-semibold mb-2">起始位置</h3>
-                <div className="space-y-2">
-                <div>
-                    <label className="block text-sm font-medium">Width (X)</label>
-                    <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={coordinates.x}
-                    onChange={(e) => handleCoordinateChange('x', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Height (Y)</label>
-                    <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={coordinates.y}
-                    onChange={(e) => handleCoordinateChange('y', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Depth (Z)</label>
-                    <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={coordinates.z}
-                    onChange={(e) => handleCoordinateChange('z', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                </div>
-            </div>
-            
-            {/* 长方体尺寸控制 */}
-            <div>
-                <h3 className="text-md font-semibold mb-2">长方体尺寸</h3>
-                <div className="space-y-2">
-                <div>
-                    <label className="block text-sm font-medium">Width</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    max={spaceSize.x}
-                    step="0.1"
-                    value={dimensions.width}
-                    onChange={(e) => handleDimensionChange('width', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Height</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    max={spaceSize.y}
-                    step="0.1"
-                    value={dimensions.height}
-                    onChange={(e) => handleDimensionChange('height', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium">Depth</label>
-                    <input
-                    type="number"
-                    min="0.1"
-                    max={spaceSize.z}
-                    step="0.1"
-                    value={dimensions.depth}
-                    onChange={(e) => handleDimensionChange('depth', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                    />
-                </div>
-                </div>
-            </div>
-    
-            {/* 添加长方体按钮 */}
-            <button
-                onClick={() => {
-                const newCube = {
-                    x: coordinates.x,
-                    y: coordinates.y,
-                    z: coordinates.z,
-                    width: dimensions.width,
-                    height: dimensions.height,
-                    depth: dimensions.depth,
-                    color: getRandomColor(),
-                };
-    
-                if (isSpaceAvailable(newCube)) {
-                    setCubes((prev) => [...prev, newCube]);
-                    const geometry = new THREE.BoxGeometry(
-                    newCube.width,
-                    newCube.height,
-                    newCube.depth
-                    );
-                    // 在添加立方体的部分
-                    const material = new THREE.MeshPhongMaterial({
-                        color: newCube.color,
-                        transparent: true,
-                        opacity: (currentLayer === -1 || layers.length === 0) && 
-                                (currentModelIndex === -1 || currentModelIndex === cubes.length)
-                            ? 0.8 
-                            : 0.3
-                    });
-                    const cubeMesh = new THREE.Mesh(geometry, material);
-                    cubeMesh.position.set(
-                    newCube.x + newCube.width / 2,
-                    newCube.y + newCube.height / 2,
-                    newCube.z + newCube.depth / 2
-                    );
+                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    {/* 空间设置面板 */}
+                    <Accordion>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <SettingsIcon sx={{ mr: 1 }} />
+                                <Typography>Space Settings</Typography>
+                            </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                <TextField
+                                    fullWidth
+                                    label="Width (X)"
+                                    type="number"
+                                    value={spaceSize.x}
+                                    onChange={(e) => handleSpaceSizeChange('x', e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    label="Height (Y)"
+                                    type="number"
+                                    value={spaceSize.y}
+                                    onChange={(e) => handleSpaceSizeChange('y', e.target.value)}
+                                    size="small"
+                                />
+                                <TextField
+                                    fullWidth
+                                    label="Depth (Z)"
+                                    type="number"
+                                    value={spaceSize.z}
+                                    onChange={(e) => handleSpaceSizeChange('z', e.target.value)}
+                                    size="small"
+                                />
+                            </Box>
+                        </AccordionDetails>
+                    </Accordion>
 
-                    sceneRef.current.modelGroup.add(cubeMesh);
-                    newCube.mesh = cubeMesh;
-                } else {
-                    alert("空间不足或与其他长方体冲突！");
+
+                {/* 模型控制面板 */}
+                <Accordion sx={{ mt: 2 }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <ViewInArIcon sx={{ mr: 1 }} />
+                                <Typography>Model Controls</Typography>
+                            </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Tabs 
+                                value={tabValue} 
+                                onChange={(e, newValue) => setTabValue(newValue)}
+                                sx={{ mb: 2 }}
+                            >
+                                <Tab label="Position" />
+                                <Tab label="Size" />
+                            </Tabs>
+
+                            {tabValue === 0 && (
+                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                    <TextField
+                                        fullWidth
+                                        label="X Position"
+                                        type="number"
+                                        value={coordinates.x}
+                                        onChange={(e) => handleCoordinateChange('x', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Y Position"
+                                        type="number"
+                                        value={coordinates.y}
+                                        onChange={(e) => handleCoordinateChange('y', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Z Position"
+                                        type="number"
+                                        value={coordinates.z}
+                                        onChange={(e) => handleCoordinateChange('z', e.target.value)}
+                                        size="small"
+                                    />
+                                </Box>
+                            )}
+
+                            {tabValue === 1 && (
+                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Width"
+                                        type="number"
+                                        value={dimensions.width}
+                                        onChange={(e) => handleDimensionChange('width', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Height"
+                                        type="number"
+                                        value={dimensions.height}
+                                        onChange={(e) => handleDimensionChange('height', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Depth"
+                                        type="number"
+                                        value={dimensions.depth}
+                                        onChange={(e) => handleDimensionChange('depth', e.target.value)}
+                                        size="small"
+                                    />
+                                </Box>
+                            )}
+
+                            <Button 
+                                variant="contained"
+                                fullWidth
+                                onClick={() => {
+                                            const newCube = {
+                                                x: coordinates.x,
+                                                y: coordinates.y,
+                                                z: coordinates.z,
+                                                width: dimensions.width,
+                                                height: dimensions.height,
+                                                depth: dimensions.depth,
+                                                color: getRandomColor(),
+                                            };
+
+                                            if (isSpaceAvailable(newCube)) {
+                                                setCubes((prev) => [...prev, newCube]);
+                                                const geometry = new THREE.BoxGeometry(
+                                                    newCube.width,
+                                                    newCube.height,
+                                                    newCube.depth
+                                                );
+                                                const material = new THREE.MeshPhongMaterial({
+                                                    color: newCube.color,
+                                                    transparent: true,
+                                                    opacity: (currentLayer === -1 || layers.length === 0) && 
+                                                            (currentModelIndex === -1 || currentModelIndex === cubes.length)
+                                                        ? 0.8 
+                                                        : 0.3
+                                                });
+                                                const cubeMesh = new THREE.Mesh(geometry, material);
+                                                cubeMesh.position.set(
+                                                    newCube.x + newCube.width / 2,
+                                                    newCube.y + newCube.height / 2,
+                                                    newCube.z + newCube.depth / 2
+                                                );
+                                                sceneRef.current.modelGroup.add(cubeMesh);
+                                                newCube.mesh = cubeMesh;
+                                            } else {
+                                                alert("空间不足或与其他长方体冲突！");
+                                            }
+                                        }}
+                                    >
+                                    Add Cube
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </Box>
+            </Box>
+
+
+
+
+
+{/* 主渲染区域 */}
+<Box sx={{ flex: 1, position: 'relative' }}>
+{/* Three.js 渲染容器 */}
+<Box
+    ref={mountRef}
+    sx={{ 
+        width: '100%',
+        height: '100%',
+        bgcolor: 'grey.100'
+    }}
+/>
+
+{/* 视图控制 */}
+<Box sx={{
+    position: 'absolute',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: 1,
+    bgcolor: 'rgba(0, 0, 0, 0.4)',
+    p: 1,
+    borderRadius: 1
+}}>
+    <Button
+        variant={viewMode === 'front' ? "contained" : "text"}
+        size="small"
+        onClick={() => handleViewChange('front')}
+        sx={{ color: 'white' }}
+    >
+        Front
+    </Button>
+    <Button
+        variant={viewMode === 'side' ? "contained" : "text"}
+        size="small"
+        onClick={() => handleViewChange('side')}
+        sx={{ color: 'white' }}
+    >
+        Side
+    </Button>
+    <Button
+        variant={viewMode === 'top' ? "contained" : "text"}
+        size="small"
+        onClick={() => handleViewChange('top')}
+        sx={{ color: 'white' }}
+    >
+        Top
+    </Button>
+    {viewMode !== 'free' && (
+        <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleViewChange('free')}
+            color="primary"
+        >
+            Free View
+        </Button>
+    )}
+</Box>
+
+{/* 全屏控制 */}
+<Button
+    variant="outlined"
+    onClick={toggleFullScreen}
+    sx={{
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        minWidth: 'auto',
+        p: 1,
+        bgcolor: 'rgba(0, 0, 0, 0.4)',
+        color: 'white',
+        '&:hover': {
+            bgcolor: 'rgba(0, 0, 0, 0.6)'
+        }
+    }}
+>
+    {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+</Button>
+
+{/* 层级控制 */}
+<Box sx={{
+    position: 'absolute',
+    left: 24,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    bgcolor: 'rgba(0, 0, 0, 0.4)',
+    p: 1.5,
+    borderRadius: 1
+}}>
+    <Box sx={{ height: 192 }}>
+        <Slider
+            orientation="vertical"
+            min={-1}
+            max={layers.length - 1}
+            value={currentLayer}
+            onChange={(e, value) => setCurrentLayer(value)}
+            sx={{ 
+                height: '100%',
+                color: 'white',
+                '& .MuiSlider-thumb': {
+                    bgcolor: 'white'
                 }
-                }}
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded w-full"
-            >
-                添加长方体
-            </button>
+            }}
+        />
+    </Box>
+</Box>
 
-
-
-            </div>
-        </div>
-    
-        {/* 右侧Three.js渲染区域 */}
-        <div className="flex-1 relative flex items-center justify-center bg-gray-100">
-            <div 
-                ref={mountRef} 
-                style={{ 
-                    width: '100%',
-                    height: '600px',
-                    backgroundColor: '#f0f0f0'
-                }}
-            />
-            <button
-                onClick={toggleFullScreen}
-                className="absolute bottom-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
-            >
-                {isFullScreen ? (
-                    <Minimize2 className="w-6 h-6" />
-                ) : (
-                    <Maximize2 className="w-6 h-6" />
-                )}
-            </button>
-
-            {isFullScreen && (
-                <button 
-                    onClick={toggleFullScreen} 
-                    className="absolute top-4 right-4 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded z-50 transition-all"
-                >
-                    <X className="w-6 h-6" />
-                </button>
-            )}
-
-            {/* 在右侧Three.js渲染区域的 div 内部添加,和其他按钮平级 */}
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 p-2 rounded">
-                <input
-                    type="range"
-                    min="-1"
-                    max={layers.length - 1}
-                    value={currentLayer}
-                    onChange={(e) => setCurrentLayer(parseInt(e.target.value))}
-                    className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                        writingMode: 'bt-lr',
-                        transform: 'rotate(270deg)',
-                        transformOrigin: 'center',
-                        height: '200px'
+{/* 模型列表 */}
+<Card sx={{
+    position: 'absolute',
+    right: 24,
+    top: 24,
+    width: 192,
+    bgcolor: 'rgba(0, 0, 0, 0.4)',
+}}>
+    <CardContent>
+        <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
+            Models
+        </Typography>
+        <Box sx={{ 
+            maxHeight: 192, 
+            overflow: 'auto',
+            '& > :not(:last-child)': { mb: 0.5 }
+        }}>
+            {cubes.map((cube, index) => (
+                <Button
+                    key={index}
+                    variant={currentModelIndex === index ? "contained" : "text"}
+                    size="small"
+                    onClick={() => setCurrentModelIndex(index)}
+                    fullWidth
+                    sx={{ 
+                        justifyContent: 'flex-start',
+                        color: 'white'
                     }}
-                />
-            </div>
-
-            {/* 在右侧Three.js渲染区域的 div 内,和其他控件平级 */}
-            {/* 模型顺序的进度条 */}
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 p-2 rounded">
-                <input
-                    type="range"
-                    min="-1"
-                    max={cubes.length - 1}
-                    value={currentModelIndex}
-                    onChange={(e) => setCurrentModelIndex(parseInt(e.target.value))}
-                    className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                        writingMode: 'bt-lr',
-                        transform: 'rotate(270deg)',
-                        transformOrigin: 'center',
-                        height: '200px'
-                    }}
-                />
-            </div>
-
-            {/* 模型序号列表 */}
-            <div className="absolute right-24 top-4 bg-black bg-opacity-50 p-4 rounded">
-                <h3 className="text-white font-semibold mb-2">模型序号</h3>
-                <div className="text-white space-y-1" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {cubes.map((cube, index) => (
-                        <div 
-                            key={index}
-                            className={`py-1 px-2 rounded cursor-pointer hover:bg-white hover:bg-opacity-10 
-                                ${currentModelIndex === index ? 'bg-white bg-opacity-20' : ''}`}
-                            onClick={() => setCurrentModelIndex(index)}
-                        >
-                            第{index + 1}个模型
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-
-
-
-
-
-            {/* 视图控制按钮组 */}
-            <div className="absolute bottom-4 left-4 flex gap-2 z-50 flex-wrap max-w-[200px]">
-                <button
-                    onClick={() => handleViewChange('front')}
-                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'front' ? 'ring-2 ring-white' : ''}`}
                 >
-                    前视图
-                </button>
-                <button
-                    onClick={() => handleViewChange('side')}
-                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'side' ? 'ring-2 ring-white' : ''}`}
-                >
-                    侧视图
-                </button>
-                <button
-                    onClick={() => handleViewChange('top')}
-                    className={`bg-black bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all ${viewMode === 'top' ? 'ring-2 ring-white' : ''}`}
-                >
-                    俯视图
-                </button>
-                {viewMode !== 'free' && (
-                    <button
-                        onClick={() => handleViewChange('free')}
-                        className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 text-white px-3 py-2 rounded transition-all"
-                    >
-                        自由视角
-                    </button>
-                )}
-            </div>
-
-            {/* 视图模式提示 */}
-            {viewMode !== 'free' && (
-                <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-2 rounded">
-                    当前：{viewMode === 'front' ? '前视图' : viewMode === 'side' ? '侧视图' : '俯视图'}
-                    <br />
-                    <span className="text-sm opacity-75">拖动或点击自由视角按钮可退出固定视图</span>
-                </div>
-            )}
-        </div>
-        </div>
-    );
+                    Model {index + 1}
+                </Button>
+            ))}
+        </Box>
+    </CardContent>
+</Card>
+</Box>
+</Box>
+);
 };
 
 export default ThreeScene;
