@@ -86,8 +86,8 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>自定义修改空间尺寸后，在未全屏的状态下，无法转动视角</li>
 
           <li style={styles.strikethrough}>用作分层的进度条</li>
-          <li>物理的放置顺序和列表</li>
-          <li>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
+          <li style={styles.strikethrough}>物理的放置顺序和列表</li>
+          <li style={styles.strikethrough}>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
           <li style={styles.strikethrough}>前一个物体变为灰色</li>
           <li>iPhone和iPad无法向下滑动退出全屏状态</li>
           <li>超大数值会卡住</li>
