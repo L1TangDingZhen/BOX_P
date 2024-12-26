@@ -29,6 +29,7 @@ const ThreeScene = () => {
     const [viewMode, setViewMode] = useState('free'); // 'free', 'front', 'side', 'top'
     const [layers, setLayers] = useState([]); // 存储每一层的模型
     const [currentLayer, setCurrentLayer] = useState(-1); // -1 表示不高亮任何层
+    const [currentModelIndex, setCurrentModelIndex] = useState(-1); // -1 表示不高亮任何模型
 
       // 辅助函数
     const getRandomColor = () => {
@@ -897,7 +898,7 @@ const ThreeScene = () => {
     useEffect(() => {
         if (!sceneRef.current) return;
     
-        cubes.forEach((cube) => {
+        cubes.forEach((cube, index) => {
             if (cube.mesh) {
                 // 更新位置
                 cube.mesh.position.set(
@@ -905,15 +906,15 @@ const ThreeScene = () => {
                     cube.y + cube.height / 2,
                     cube.z + cube.depth / 2
                 );
-                // 更新透明度
+                // 更新透明度 - 双重条件：层级和序号
                 cube.mesh.material.opacity = 
-                    currentLayer === -1 || 
-                    layers.findIndex(layer => layer.includes(cube)) === currentLayer 
+                    (currentLayer === -1 || layers.findIndex(layer => layer.includes(cube)) === currentLayer) && 
+                    (currentModelIndex === -1 || currentModelIndex === index)
                         ? 0.8 
                         : 0.3;
             }
         });
-    }, [coordinates, dimensions, cubes, currentLayer, layers]);
+    }, [coordinates, dimensions, cubes, currentLayer, layers, currentModelIndex]);
 
     // 处理全屏变化
     useEffect(() => {
@@ -1087,10 +1088,14 @@ const ThreeScene = () => {
                     newCube.height,
                     newCube.depth
                     );
+                    // 在添加立方体的部分
                     const material = new THREE.MeshPhongMaterial({
-                    color: newCube.color,
-                    transparent: true,
-                    opacity: currentLayer === -1 || layers.findIndex(layer => layer.includes(newCube)) === currentLayer ? 0.8 : 0.3
+                        color: newCube.color,
+                        transparent: true,
+                        opacity: (currentLayer === -1 || layers.length === 0) && 
+                                (currentModelIndex === -1 || currentModelIndex === cubes.length)
+                            ? 0.8 
+                            : 0.3
                     });
                     const cubeMesh = new THREE.Mesh(geometry, material);
                     cubeMesh.position.set(
@@ -1162,6 +1167,46 @@ const ThreeScene = () => {
                     }}
                 />
             </div>
+
+            {/* 在右侧Three.js渲染区域的 div 内,和其他控件平级 */}
+            {/* 模型顺序的进度条 */}
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 p-2 rounded">
+                <input
+                    type="range"
+                    min="-1"
+                    max={cubes.length - 1}
+                    value={currentModelIndex}
+                    onChange={(e) => setCurrentModelIndex(parseInt(e.target.value))}
+                    className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                        writingMode: 'bt-lr',
+                        transform: 'rotate(270deg)',
+                        transformOrigin: 'center',
+                        height: '200px'
+                    }}
+                />
+            </div>
+
+            {/* 模型序号列表 */}
+            <div className="absolute right-24 top-4 bg-black bg-opacity-50 p-4 rounded">
+                <h3 className="text-white font-semibold mb-2">模型序号</h3>
+                <div className="text-white space-y-1" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    {cubes.map((cube, index) => (
+                        <div 
+                            key={index}
+                            className={`py-1 px-2 rounded cursor-pointer hover:bg-white hover:bg-opacity-10 
+                                ${currentModelIndex === index ? 'bg-white bg-opacity-20' : ''}`}
+                            onClick={() => setCurrentModelIndex(index)}
+                        >
+                            第{index + 1}个模型
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+
+
+
 
 
             {/* 视图控制按钮组 */}
