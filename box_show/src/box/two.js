@@ -51,7 +51,7 @@ const ThreeScene = () => {
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [tabValue, setTabValue] = useState(0);
-
+    const [interactionMode, setInteractionMode] = useState(null); // null, 'layer', 'model'
 
 
     // --- Constants ---
@@ -1251,15 +1251,41 @@ const ThreeScene = () => {
     transform: 'translateY(-50%)',
     bgcolor: 'rgba(0, 0, 0, 0.4)',
     p: 1.5,
-    borderRadius: 1
+    borderRadius: 1,
+    pointerEvents: interactionMode === 'model' ? 'none' : 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
 }}>
+    <Button
+        size="small"
+        onClick={() => {
+            setCurrentLayer(-1);
+            setInteractionMode(null);
+        }}
+        sx={{
+            mb: 1,
+            color: 'white',
+            borderColor: 'white'
+        }}
+    >
+        Reset
+    </Button>
     <Box sx={{ height: 192 }}>
         <Slider
             orientation="vertical"
             min={-1}
             max={layers.length - 1}
             value={currentLayer}
-            onChange={(e, value) => setCurrentLayer(value)}
+            onChange={(e, value) => {
+                setCurrentLayer(value);
+                if (value === -1) {
+                    setInteractionMode(null);
+                } else {
+                    setInteractionMode('layer');
+                }
+                setCurrentModelIndex(-1);
+            }}
             sx={{ 
                 height: '100%',
                 color: 'white',
@@ -1278,6 +1304,8 @@ const ThreeScene = () => {
     top: 24,
     width: 192,
     bgcolor: 'rgba(0, 0, 0, 0.4)',
+    pointerEvents: interactionMode === 'layer' ? 'none' : 'auto',
+
 }}>
     <CardContent>
         <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
@@ -1301,9 +1329,13 @@ const ThreeScene = () => {
                         // alert(`再次点击了 model${index + 1}，将取消选中`);
                         // console.log(`取消选中 model${index + 1}`);
                         setCurrentModelIndex(-1);
+                        setInteractionMode(null);
+
                     } else {
                         // 第一次点击选中
                         setCurrentModelIndex(index);
+                        setInteractionMode('model');
+                        setCurrentLayer(-1); // 取消层级选择
                     }
                 }}
                 fullWidth
