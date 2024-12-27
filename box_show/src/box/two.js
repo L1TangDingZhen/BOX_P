@@ -979,14 +979,21 @@ const ThreeScene = () => {
         }}>
             {/* 左侧控制面板 */}
             <Box sx={{ 
-                width: 320, 
-                borderRight: 1, 
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                boxShadow: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden'
+                // width: 320, 
+                // borderRight: 1, 
+                // borderColor: 'divider',
+                // bgcolor: 'background.paper',
+                // boxShadow: 1,
+                // display: 'flex',
+                // flexDirection: 'column',
+                // overflow: 'hidden'
+                position: 'absolute',  
+                top: 24,
+                left: 24,
+                width: 320,
+                zIndex: 999999,
+                border: '5px solid rgba(0, 0, 0, 0.4)',
+                bgcolor: 'white'
             }}>
                 <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
                     <Typography variant="h6">3D Scene Controls</Typography>
@@ -994,7 +1001,7 @@ const ThreeScene = () => {
 
                 <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                     {/* 空间设置面板 */}
-                    <Accordion>
+                    <Accordion defaultExpanded>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <SettingsIcon sx={{ mr: 1 }} />
@@ -1033,7 +1040,7 @@ const ThreeScene = () => {
 
 
                 {/* 模型控制面板 */}
-                <Accordion sx={{ mt: 2 }}>
+                <Accordion sx={{ mt: 2 }} defaultExpanded>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <ViewInArIcon sx={{ mr: 1 }} />
@@ -1246,7 +1253,9 @@ const ThreeScene = () => {
 {/* 层级控制 */}
 <Box sx={{
     position: 'absolute',
-    left: 24,
+    // left: 24,
+    right: 24,             // 固定到最右侧
+
     top: '50%',
     transform: 'translateY(-50%)',
     bgcolor: 'rgba(0, 0, 0, 0.4)',
