@@ -937,12 +937,13 @@ const ThreeScene = () => {
                     cube.y + cube.height / 2,
                     cube.z + cube.depth / 2
                 );
+                // console.log(`Cube ${index}: x=${cube.x}, y=${cube.y}, z=${cube.z}`);
                 // 更新透明度 - 双重条件：层级和序号
-                cube.mesh.material.opacity = 
-                    (currentLayer === -1 || layers.findIndex(layer => layer.includes(cube)) === currentLayer) && 
-                    (currentModelIndex === -1 || currentModelIndex === index)
-                        ? 0.8 
-                        : 0.3;
+                const isInCurrentLayer = currentLayer === -1 || layers.findIndex(layer => layer.includes(cube)) === currentLayer;
+                const isCurrentModel = currentModelIndex === -1 || currentModelIndex === index;
+                // console.log(`Cube ${index}: isInCurrentLayer=${isInCurrentLayer}, isCurrentModel=${isCurrentModel}`);
+                
+                cube.mesh.material.opacity = isInCurrentLayer ? (isCurrentModel ? 0.8 : 0.3) : 0.3;
             }
         });
     }, [coordinates, dimensions, cubes, currentLayer, layers, currentModelIndex]);
@@ -1181,6 +1182,8 @@ const ThreeScene = () => {
     display: 'flex',
     gap: 1,
     bgcolor: 'rgba(0, 0, 0, 0.4)',
+    zIndex: 9999,           // 加个超大优先级
+    pointerEvents: 'auto',  // 确保可以点击
     p: 1,
     borderRadius: 1
 }}>
@@ -1285,21 +1288,35 @@ const ThreeScene = () => {
             overflow: 'auto',
             '& > :not(:last-child)': { mb: 0.5 }
         }}>
-            {cubes.map((cube, index) => (
-                <Button
-                    key={index}
-                    variant={currentModelIndex === index ? "contained" : "text"}
-                    size="small"
-                    onClick={() => setCurrentModelIndex(index)}
-                    fullWidth
-                    sx={{ 
-                        justifyContent: 'flex-start',
-                        color: 'white'
-                    }}
-                >
-                    Model {index + 1}
-                </Button>
-            ))}
+
+        {cubes.map((cube, index) => (
+            <Button
+                key={index}
+                variant={currentModelIndex === index ? "contained" : "text"}
+                size="small"
+                onClick={() => {
+                    // console.log(`Clicked on Model ${index + 1}`);
+                    if (currentModelIndex === index) {
+                        // 第二次点击同一个 Model
+                        // alert(`再次点击了 model${index + 1}，将取消选中`);
+                        // console.log(`取消选中 model${index + 1}`);
+                        setCurrentModelIndex(-1);
+                    } else {
+                        // 第一次点击选中
+                        setCurrentModelIndex(index);
+                    }
+                }}
+                fullWidth
+                sx={{ 
+                    justifyContent: 'flex-start',
+                    color: 'white'
+                }}
+            >
+                Model {index + 1}
+            </Button>
+        ))}
+
+
         </Box>
     </CardContent>
 </Card>
