@@ -41,9 +41,17 @@ const ThreeScene = () => {
     const cameraRef = useRef(null);
     const isMouseDown = useRef(false);
     const mousePosition = useRef({ x: 0, y: 0 });
-    const cameraRotation = useRef({ x: 0, y: 0 });
+    const cameraRotation = useRef({ MuiOutlinedInputx: 0, y: 0 });
     const toggleFullScreenRef = useRef(null);
-
+    const textFieldStyle = {
+        '& .MuiInputBase-input': {
+            color: '#000',  // 文本颜色
+        },
+        '& .MuiOutlinedInput-root': {
+            backgroundColor: 'white',  // 输入框背景色
+        }
+    };
+    
     // --- State ---
     const [coordinates, setCoordinates] = useState({ x: 0, y: 0, z: 0 });
     const [dimensions, setDimensions] = useState({ width: 1, height: 1, depth: 1 });
@@ -57,19 +65,6 @@ const ThreeScene = () => {
     // --- Constants ---
     const colorSet = new Set();
     const isIOS = /iPhone|iPad/.test(navigator.userAgent);
-    // 对于 TextField 的占位符样式，使用 MUI 的标准写法
-    const textFieldStyle = {
-        '& .MuiInputBase-input': {
-            '&::placeholder': {
-                color: 'rgba(0, 0, 0, 0.6)'
-            }
-        },
-        '& input': {
-            '&::placeholder': {
-                color: 'rgba(0, 0, 0, 0.6)'
-            }
-        }
-    };
     const [viewMode, setViewMode] = useState('free'); // 'free', 'front', 'side', 'top'
     const [layers, setLayers] = useState([]); // 存储每一层的模型
     const [currentLayer, setCurrentLayer] = useState(-1); // -1 表示不高亮任何层
@@ -174,15 +169,14 @@ const ThreeScene = () => {
             const tickPoints = [];
 
             if (axis === "x") {
-
-                tickPoints.push(new THREE.Vector3(i, -0.1, 0));
-                tickPoints.push(new THREE.Vector3(i, 0.1, 0));
+            tickPoints.push(new THREE.Vector3(i, -0.1, 0));
+            tickPoints.push(new THREE.Vector3(i, 0.1, 0));
             } else if (axis === "y") {
-                tickPoints.push(new THREE.Vector3(-0.1, i, 0));
-                tickPoints.push(new THREE.Vector3(0.1, i, 0));
+            tickPoints.push(new THREE.Vector3(-0.1, i, 0));
+            tickPoints.push(new THREE.Vector3(0.1, i, 0));
             } else if (axis === "z") {
-                tickPoints.push(new THREE.Vector3(0, -0.1, i));
-                tickPoints.push(new THREE.Vector3(0, 0.1, i));
+            tickPoints.push(new THREE.Vector3(0, -0.1, i));
+            tickPoints.push(new THREE.Vector3(0, 0.1, i));
             }
 
             tickGeometry.setFromPoints(tickPoints);
@@ -193,13 +187,13 @@ const ThreeScene = () => {
             "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
             (font) => {
                 const textGeometry = new TextGeometry(i.toString(), {
-                    font: font,
-                    size: 0.3,
-                    depth: 0.05,
+                font: font,
+                size: 0.3,
+                height: 0.05,
                 });
                 const textMesh = new THREE.Mesh(
-                    textGeometry,
-                    new THREE.MeshBasicMaterial({ color: 0x000000 })
+                textGeometry,
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
                 );
 
                 if (axis === "x") textMesh.position.set(i, -0.5, 0);
@@ -267,7 +261,7 @@ const ThreeScene = () => {
                     const textGeometry = new TextGeometry(label, {
                         font: font,
                         size: 0.5,
-                        depth: 0.1,
+                        height: 0.1,
                     });
                     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
                     
@@ -357,6 +351,7 @@ const ThreeScene = () => {
     }, [isIOS, isFullScreen]);
 
 
+    // 修改 handleFullScreen 函数
     const toggleFullScreen = useCallback(async () => {
         try {
             if (!isFullScreen) {
@@ -370,7 +365,7 @@ const ThreeScene = () => {
                         mountRef.current.style.height = "100vh";
                         mountRef.current.style.zIndex = "9999";
                         mountRef.current.style.backgroundColor = "#f0f0f0";
-    
+
                         mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
                     }
                 } else {
@@ -390,7 +385,7 @@ const ThreeScene = () => {
                         mountRef.current.style.width = "";
                         mountRef.current.style.height = "";
                         mountRef.current.style.zIndex = "";
-    
+
                         mountRef.current.removeEventListener('touchmove', handleTouchMove);
                     }
                 } else {
@@ -401,7 +396,7 @@ const ThreeScene = () => {
                     }
                 }
             }
-    
+
             // 无论是进入还是退出全屏，都延迟执行重绘操作
             setTimeout(() => {
                 handleResize();
@@ -421,7 +416,6 @@ const ThreeScene = () => {
             console.error("Error toggling fullscreen:", err);
         }
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
-    
 
     const calculateLayers = useCallback(() => {
         if (cubes.length === 0) {
@@ -779,7 +773,7 @@ const ThreeScene = () => {
 
 
 
-    // --- 完整的全屏变化 Effect ---
+    // 修改处理全屏变化的 Effect
     useEffect(() => {
         const handleFullScreenChange = () => {
             const isCurrentlyFullScreen = !!document.fullscreenElement;
@@ -868,10 +862,6 @@ const ThreeScene = () => {
         renderer.render(scene, camera);
         };
         animate();
-
-
-
-
 
         // Cleanup
         return () => {
@@ -1007,401 +997,408 @@ const ThreeScene = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
 
-    return (
-        <Box sx={{ 
-            display: 'flex', 
-            height: '100vh',
-            bgcolor: '#f5f5f5',
 
-        }}>
-            {/* 左侧控制面板 */}
+
+    return (
+        <>
             <Box sx={{ 
-                position: 'absolute',  
-                top: '24px',
-                left: '24px',
-                width: '320px',
-                zIndex: 999999,
-                border: '5px solid rgba(0, 0, 0, 0.4)',
-                bgcolor: 'white'
+                display: 'flex', 
+                height: '100vh',
+                bgcolor: '#f5f5f5',
+                position: 'relative'
             }}>
-                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
-                    <Typography variant="h6">3D Scene Controls</Typography>
+
+                {/* 左侧控制面板 */}
+                <Box sx={{ 
+                    position: 'absolute',  
+                    top: 24,
+                    left: 24,
+                    width: 320,
+                    zIndex: 999999,
+                    border: '5px solid rgba(0, 0, 0, 0.4)',
+                    bgcolor: 'white'
+                }}>
+                    <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+                        <Typography variant="h6">3D Scene Controls</Typography>
+                    </Box>
+                    {/* 所有已有内容 */}
+                    <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                        {/* 空间设置面板 */}
+                        <Accordion defaultExpanded>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <SettingsIcon sx={{ mr: 1 }} />
+                                    <Typography>Space Settings</Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                    <TextField
+                                        sx={textFieldStyle}
+                                        fullWidth
+                                        label="Width (X)"
+                                        type="number"
+                                        value={spaceSize.x}
+                                        onChange={(e) => handleSpaceSizeChange('x', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        sx={textFieldStyle}  // 直接使用样式常量
+                                        fullWidth
+                                        label="Height (Y)"
+                                        type="number"
+                                        value={spaceSize.y}
+                                        onChange={(e) => handleSpaceSizeChange('y', e.target.value)}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        sx={textFieldStyle}
+                                        fullWidth
+                                        label="Depth (Z)"
+                                        type="number"
+                                        value={spaceSize.z}
+                                        onChange={(e) => handleSpaceSizeChange('z', e.target.value)}
+                                        size="small"
+                                    />
+                                </Box>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        {/* 模型控制面板 */}
+                        <Accordion sx={{ mt: 2 }} defaultExpanded>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <ViewInArIcon sx={{ mr: 1 }} />
+                                        <Typography>Model Controls</Typography>
+                                    </Box>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Tabs 
+                                        value={tabValue} 
+                                        onChange={(e, newValue) => setTabValue(newValue)}
+                                        sx={{ mb: 2 }}
+                                    >
+                                        <Tab label="Position" />
+                                        <Tab label="Size" />
+                                    </Tabs>
+
+                                    {tabValue === 0 && (
+                                        <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="X Position"
+                                                type="number"
+                                                value={coordinates.x}
+                                                onChange={(e) => handleCoordinateChange('x', e.target.value)}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="Y Position"
+                                                type="number"
+                                                value={coordinates.y}
+                                                onChange={(e) => handleCoordinateChange('y', e.target.value)}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="Z Position"
+                                                type="number"
+                                                value={coordinates.z}
+                                                onChange={(e) => handleCoordinateChange('z', e.target.value)}
+                                                size="small"
+                                            />
+                                        </Box>
+                                    )}
+
+                                    {tabValue === 1 && (
+                                        <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="Width"
+                                                type="number"
+                                                value={dimensions.width}
+                                                onChange={(e) => handleDimensionChange('width', e.target.value)}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="Height"
+                                                type="number"
+                                                value={dimensions.height}
+                                                onChange={(e) => handleDimensionChange('height', e.target.value)}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                sx={textFieldStyle}
+                                                fullWidth
+                                                label="Depth"
+                                                type="number"
+                                                value={dimensions.depth}
+                                                onChange={(e) => handleDimensionChange('depth', e.target.value)}
+                                                size="small"
+                                            />
+                                        </Box>
+                                    )}
+
+                                    <Button 
+                                        variant="contained"
+                                        fullWidth
+                                        onClick={() => {
+                                                    const newCube = {
+                                                        x: coordinates.x,
+                                                        y: coordinates.y,
+                                                        z: coordinates.z,
+                                                        width: dimensions.width,
+                                                        height: dimensions.height,
+                                                        depth: dimensions.depth,
+                                                        color: getRandomColor(),
+                                                    };
+
+                                                    if (isSpaceAvailable(newCube)) {
+                                                        setCubes((prev) => [...prev, newCube]);
+                                                        const geometry = new THREE.BoxGeometry(
+                                                            newCube.width,
+                                                            newCube.height,
+                                                            newCube.depth
+                                                        );
+                                                        const material = new THREE.MeshPhongMaterial({
+                                                            color: newCube.color,
+                                                            transparent: true,
+                                                            opacity: (currentLayer === -1 || layers.length === 0) && 
+                                                                    (currentModelIndex === -1 || currentModelIndex === cubes.length)
+                                                                ? 0.8 
+                                                                : 0.3
+                                                        });
+                                                        const cubeMesh = new THREE.Mesh(geometry, material);
+                                                        cubeMesh.position.set(
+                                                            newCube.x + newCube.width / 2,
+                                                            newCube.y + newCube.height / 2,
+                                                            newCube.z + newCube.depth / 2
+                                                        );
+                                                        sceneRef.current.modelGroup.add(cubeMesh);
+                                                        newCube.mesh = cubeMesh;
+                                                    } else {
+                                                        alert("空间不足或与其他长方体冲突！");
+                                                    }
+                                                }}
+                                            >
+                                            Add Cube
+                                    </Button>
+                                </AccordionDetails>
+                        </Accordion>
+                    </Box>
                 </Box>
 
-                <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-                    {/* 空间设置面板 */}
-                    <Accordion defaultExpanded>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <SettingsIcon sx={{ mr: 1 }} />
-                                <Typography>Space Settings</Typography>
-                            </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Box sx={{ '& > :not(style)': { mb: 2 } }}>
-                                <TextField
-                                    sx={textFieldStyle}
-                                    fullWidth
-                                    label="Width (X)"
-                                    type="number"
-                                    value={spaceSize.x}
-                                    onChange={(e) => handleSpaceSizeChange('x', e.target.value)}
-                                    size="small"
-                                />
-                                <TextField
-                                    sx={textFieldStyle}  // 直接使用样式常量
-                                    fullWidth
-                                    label="Height (Y)"
-                                    type="number"
-                                    value={spaceSize.y}
-                                    onChange={(e) => handleSpaceSizeChange('y', e.target.value)}
-                                    size="small"
-                                />
-                                <TextField
-                                    sx={textFieldStyle}
-                                    fullWidth
-                                    label="Depth (Z)"
-                                    type="number"
-                                    value={spaceSize.z}
-                                    onChange={(e) => handleSpaceSizeChange('z', e.target.value)}
-                                    size="small"
-                                />
-                            </Box>
-                        </AccordionDetails>
-                    </Accordion>
 
+                {/* 主渲染区域 */}
+                <Box sx={{ flex: 1, position: 'relative' }}>
 
-                {/* 模型控制面板 */}
-                <Accordion sx={{ mt: 2 }} defaultExpanded>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <ViewInArIcon sx={{ mr: 1 }} />
-                                <Typography>Model Controls</Typography>
-                            </Box>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Tabs 
-                                value={tabValue} 
-                                onChange={(e, newValue) => setTabValue(newValue)}
-                                sx={{ mb: 2 }}
-                            >
-                                <Tab label="Position" />
-                                <Tab label="Size" />
-                            </Tabs>
+                    {/* Three.js 渲染容器 */}
+                    <Box
+                        ref={mountRef}
+                        sx={{ 
+                            width: '100%',
+                            height: '100%',
+                            bgcolor: 'grey.100'
+                        }}
+                    />
 
-                            {tabValue === 0 && (
-                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="X Position"
-                                        type="number"
-                                        value={coordinates.x}
-                                        onChange={(e) => handleCoordinateChange('x', e.target.value)}
-                                        size="small"
-                                    />
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="Y Position"
-                                        type="number"
-                                        value={coordinates.y}
-                                        onChange={(e) => handleCoordinateChange('y', e.target.value)}
-                                        size="small"
-                                    />
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="Z Position"
-                                        type="number"
-                                        value={coordinates.z}
-                                        onChange={(e) => handleCoordinateChange('z', e.target.value)}
-                                        size="small"
-                                    />
-                                </Box>
-                            )}
+                    {/* 视图控制 */}
+                    <Box sx={{
+                        position: 'absolute',
+                        bottom: '24px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        gap: '4px',
+                        bgcolor: 'rgba(0, 0, 0, 0.4)',
+                        zIndex: 9999,           // 加个超大优先级
+                        pointerEvents: 'auto',  // 确保可以点击
+                        p: '4px',
+                        borderRadius: '4px'
+                        }}>
 
-                            {tabValue === 1 && (
-                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="Width"
-                                        type="number"
-                                        value={dimensions.width}
-                                        onChange={(e) => handleDimensionChange('width', e.target.value)}
-                                        size="small"
-                                    />
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="Height"
-                                        type="number"
-                                        value={dimensions.height}
-                                        onChange={(e) => handleDimensionChange('height', e.target.value)}
-                                        size="small"
-                                    />
-                                    <TextField
-                                        sx={textFieldStyle}
-                                        fullWidth
-                                        label="Depth"
-                                        type="number"
-                                        value={dimensions.depth}
-                                        onChange={(e) => handleDimensionChange('depth', e.target.value)}
-                                        size="small"
-                                    />
-                                </Box>
-                            )}
-
-                            <Button 
+                        <Button
+                            variant={viewMode === 'front' ? "contained" : "text"}
+                            size="small"
+                            onClick={() => handleViewChange('front')}
+                            sx={{ color: 'white' }}
+                        >
+                            Front
+                        </Button>
+                        <Button
+                            variant={viewMode === 'side' ? "contained" : "text"}
+                            size="small"
+                            onClick={() => handleViewChange('side')}
+                            sx={{ color: 'white' }}
+                        >
+                            Side
+                        </Button>
+                        <Button
+                            variant={viewMode === 'top' ? "contained" : "text"}
+                            size="small"
+                            onClick={() => handleViewChange('top')}
+                            sx={{ color: 'white' }}
+                        >
+                            Top
+                        </Button>
+                        {viewMode !== 'free' && (
+                            <Button
                                 variant="contained"
-                                fullWidth
-                                onClick={() => {
-                                            const newCube = {
-                                                x: coordinates.x,
-                                                y: coordinates.y,
-                                                z: coordinates.z,
-                                                width: dimensions.width,
-                                                height: dimensions.height,
-                                                depth: dimensions.depth,
-                                                color: getRandomColor(),
-                                            };
-
-                                            if (isSpaceAvailable(newCube)) {
-                                                setCubes((prev) => [...prev, newCube]);
-                                                const geometry = new THREE.BoxGeometry(
-                                                    newCube.width,
-                                                    newCube.height,
-                                                    newCube.depth
-                                                );
-                                                const material = new THREE.MeshPhongMaterial({
-                                                    color: newCube.color,
-                                                    transparent: true,
-                                                    opacity: (currentLayer === -1 || layers.length === 0) && 
-                                                            (currentModelIndex === -1 || currentModelIndex === cubes.length)
-                                                        ? 0.8 
-                                                        : 0.3
-                                                });
-                                                const cubeMesh = new THREE.Mesh(geometry, material);
-                                                cubeMesh.position.set(
-                                                    newCube.x + newCube.width / 2,
-                                                    newCube.y + newCube.height / 2,
-                                                    newCube.z + newCube.depth / 2
-                                                );
-                                                sceneRef.current.modelGroup.add(cubeMesh);
-                                                newCube.mesh = cubeMesh;
-                                            } else {
-                                                alert("空间不足或与其他长方体冲突！");
-                                            }
-                                        }}
-                                    >
-                                    Add Cube
+                                size="small"
+                                onClick={() => handleViewChange('free')}
+                                color="primary"
+                            >
+                                Free View
                             </Button>
-                        </AccordionDetails>
-                    </Accordion>
+                        )}
+                    </Box>
+
+
+
+                    {/* 层级控制 */}
+                    <Box sx={{
+                        position: 'absolute',
+                        // left: 24,
+                        right: '24px',             // 固定到最右侧
+
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        bgcolor: 'rgba(0, 0, 0, 0.4)',
+                        p: '6px',
+                        borderRadius: '4px',
+                        pointerEvents: interactionMode === 'model' ? 'none' : 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}>
+                        <Button
+                            size="small"
+                            onClick={() => {
+                                setCurrentLayer(-1);
+                                setInteractionMode(null);
+                            }}
+                            sx={{
+                                mb: 1,
+                                color: 'white',
+                                borderColor: 'white'
+                            }}
+                        >
+                            Reset
+                        </Button>
+                        <Box sx={{ height: 192 }}>
+                            <Slider
+                                orientation="vertical"
+                                min={-1}
+                                max={layers.length - 1}
+                                value={currentLayer}
+                                onChange={(e, value) => {
+                                    setCurrentLayer(value);
+                                    if (value === -1) {
+                                        setInteractionMode(null);
+                                    } else {
+                                        setInteractionMode('layer');
+                                    }
+                                    setCurrentModelIndex(-1);
+                                }}
+                                sx={{ 
+                                    height: '100%',
+                                    color: 'white',
+                                    '& .MuiSlider-thumb': {
+                                        bgcolor: 'white'
+                                    }
+                                }}
+                            />
+                        </Box>
+                    </Box>
+
+                    {/* 模型列表 */}
+                    <Card sx={{
+                        position: 'absolute',
+                        right: '24px',
+                        top: '24px',
+                        width: '192px',
+                        bgcolor: 'rgba(0, 0, 0, 0.4)',
+                        pointerEvents: interactionMode === 'layer' ? 'none' : 'auto',
+                        }}>
+                        <CardContent>
+                            <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
+                                Models
+                            </Typography>
+                            <Box sx={{ 
+                                maxHeight: 192, 
+                                overflow: 'auto',
+                                '& > :not(:last-child)': { mb: 0.5 }
+                                }}>
+                            {cubes.map((cube, index) => (
+                                <Button
+                                    key={index}
+                                    variant={currentModelIndex === index ? "contained" : "text"}
+                                    size="small"
+                                    onClick={() => {
+                                        // console.log(`Clicked on Model ${index + 1}`);
+                                        if (currentModelIndex === index) {
+                                            // 第二次点击同一个 Model
+                                            // alert(`再次点击了 model${index + 1}，将取消选中`);
+                                            // console.log(`取消选中 model${index + 1}`);
+                                            setCurrentModelIndex(-1);
+                                            setInteractionMode(null);
+
+                                        } else {
+                                            // 第一次点击选中
+                                            setCurrentModelIndex(index);
+                                            setInteractionMode('model');
+                                            setCurrentLayer(-1); // 取消层级选择
+                                        }
+                                    }}
+                                    fullWidth
+                                    sx={{ 
+                                        justifyContent: 'flex-start',
+                                        color: 'white'
+                                    }}
+                                >
+                                    Model {index + 1}
+                                </Button>
+                            ))}
+                            </Box>
+                        </CardContent>
+                    </Card>
                 </Box>
             </Box>
 
-
-
-
-
-{/* 主渲染区域 */}
-<Box sx={{ flex: 1, position: 'relative' }}>
-{/* Three.js 渲染容器 */}
-<Box
-    ref={mountRef}
-    sx={{ 
-        width: '100%',
-        height: '100%',
-        bgcolor: 'grey.100'
-    }}
-/>
-
-{/* 视图控制 */}
-<Box sx={{
-    position: 'absolute',
-    bottom: '24px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: '4px',
-    bgcolor: 'rgba(0, 0, 0, 0.4)',
-    zIndex: 9999,           // 加个超大优先级
-    pointerEvents: 'auto',  // 确保可以点击
-    p: '4px',
-    borderRadius: '4px'
-}}>
-    <Button
-        variant={viewMode === 'front' ? "contained" : "text"}
-        size="small"
-        onClick={() => handleViewChange('front')}
-        sx={{ color: 'white' }}
-    >
-        Front
-    </Button>
-    <Button
-        variant={viewMode === 'side' ? "contained" : "text"}
-        size="small"
-        onClick={() => handleViewChange('side')}
-        sx={{ color: 'white' }}
-    >
-        Side
-    </Button>
-    <Button
-        variant={viewMode === 'top' ? "contained" : "text"}
-        size="small"
-        onClick={() => handleViewChange('top')}
-        sx={{ color: 'white' }}
-    >
-        Top
-    </Button>
-    {viewMode !== 'free' && (
-        <Button
-            variant="contained"
-            size="small"
-            onClick={() => handleViewChange('free')}
-            color="primary"
-        >
-            Free View
-        </Button>
-    )}
-</Box>
-
-{/* 全屏控制 */}
-<Button
-    variant="outlined"
-    onClick={toggleFullScreen}
-    sx={{
-        position: 'absolute',
-        bottom: '24px',
-        right: '24px',
-        minWidth: 'auto',
-        p: '4px',
-        bgcolor: 'rgba(0, 0, 0, 0.4)',
-        color: 'white',
-        '&:hover': {
-            bgcolor: 'rgba(0, 0, 0, 0.6)'
-        }
-    }}
->
-    {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-</Button>
-
-{/* 层级控制 */}
-<Box sx={{
-    position: 'absolute',
-    // left: 24,
-    right: '24px',             // 固定到最右侧
-
-    top: '50%',
-    transform: 'translateY(-50%)',
-    bgcolor: 'rgba(0, 0, 0, 0.4)',
-    p: '6px',
-    borderRadius: '4px',
-    pointerEvents: interactionMode === 'model' ? 'none' : 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-}}>
-    <Button
-        size="small"
-        onClick={() => {
-            setCurrentLayer(-1);
-            setInteractionMode(null);
-        }}
-        sx={{
-            mb: 1,
-            color: 'white',
-            borderColor: 'white'
-        }}
-    >
-        Reset
-    </Button>
-    <Box sx={{ height: 192 }}>
-        <Slider
-            orientation="vertical"
-            min={-1}
-            max={layers.length - 1}
-            value={currentLayer}
-            onChange={(e, value) => {
-                setCurrentLayer(value);
-                if (value === -1) {
-                    setInteractionMode(null);
-                } else {
-                    setInteractionMode('layer');
-                }
-                setCurrentModelIndex(-1);
-            }}
-            sx={{ 
-                height: '100%',
-                color: 'white',
-                '& .MuiSlider-thumb': {
-                    bgcolor: 'white'
-                }
-            }}
-        />
-    </Box>
-</Box>
-
-{/* 模型列表 */}
-<Card sx={{
-    position: 'absolute',
-    right: '24px',
-    top: '24px',
-    width: '192px',
-    bgcolor: 'rgba(0, 0, 0, 0.4)',
-    pointerEvents: interactionMode === 'layer' ? 'none' : 'auto',
-
-}}>
-    <CardContent>
-        <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
-            Models
-        </Typography>
-        <Box sx={{ 
-            maxHeight: 192, 
-            overflow: 'auto',
-            '& > :not(:last-child)': { mb: 0.5 }
-        }}>
-
-        {cubes.map((cube, index) => (
-            <Button
-                key={index}
-                variant={currentModelIndex === index ? "contained" : "text"}
-                size="small"
-                onClick={() => {
-                    // console.log(`Clicked on Model ${index + 1}`);
-                    if (currentModelIndex === index) {
-                        // 第二次点击同一个 Model
-                        // alert(`再次点击了 model${index + 1}，将取消选中`);
-                        // console.log(`取消选中 model${index + 1}`);
-                        setCurrentModelIndex(-1);
-                        setInteractionMode(null);
-
-                    } else {
-                        // 第一次点击选中
-                        setCurrentModelIndex(index);
-                        setInteractionMode('model');
-                        setCurrentLayer(-1); // 取消层级选择
-                    }
-                }}
-                fullWidth
-                sx={{ 
-                    justifyContent: 'flex-start',
-                    color: 'white'
+            {/* 全屏按钮 */}
+            <Box
+                sx={{
+                    position: 'fixed',
+                    bottom: 24,
+                    right: 24,
+                    zIndex: 999999
                 }}
             >
-                Model {index + 1}
-            </Button>
-        ))}
-
-
-        </Box>
-    </CardContent>
-</Card>
-</Box>
-</Box>
-);
+                <Button
+                    variant="outlined"
+                    onClick={toggleFullScreen}
+                    sx={{
+                        minWidth: 'auto',
+                        p: 1,
+                        bgcolor: 'rgba(0, 0, 0, 0.4)',
+                        color: 'white',
+                        '&:hover': {
+                            bgcolor: 'rgba(0, 0, 0, 0.6)'
+                        }
+                    }}
+                >
+                    {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </Button>
+            </Box>
+        </>
+    );
 };
 
 export default ThreeScene;

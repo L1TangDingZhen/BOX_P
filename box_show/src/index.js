@@ -5,6 +5,7 @@ import './index.css';
 import Box from './box/box';
 import Back from './box/back';
 import Two from './box/two';
+import Thr from './box/thr';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -17,6 +18,7 @@ root.render(
         {/* /back 路径，加载 Back 组件 */}
         <Route path="/back" element={<Back />} />
         <Route path="/two" element={<Two />} />
+        <Route path="/thr" element={<Thr />} />
       </Routes>
     </Router>
   // </React.StrictMode>
