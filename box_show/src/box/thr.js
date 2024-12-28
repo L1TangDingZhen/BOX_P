@@ -96,15 +96,7 @@ const ThreeScene = () => {
         return true;
     };
 
-    const handleResize = useCallback(() => {
-        if (rendererRef.current && mountRef.current && cameraRef.current) {
-            const width = mountRef.current.clientWidth;
-            const height = mountRef.current.clientHeight;
-            rendererRef.current.setSize(width, height, true);
-            cameraRef.current.aspect = width / height;
-            cameraRef.current.updateProjectionMatrix();
-        }
-    }, [rendererRef, mountRef, cameraRef]);
+
 
     const createGrids = useCallback((scene, spaceSize, visible = true) => {
         const gridGroup = new THREE.Group();
@@ -285,6 +277,42 @@ const ThreeScene = () => {
         );
     }, []);
 
+
+    const handleResize = useCallback(() => {
+        if (rendererRef.current && mountRef.current && cameraRef.current) {
+            // 获取实际尺寸，区分全屏和非全屏状态
+            let width, height;
+            if (isFullScreen) {
+                // 全屏状态下使用屏幕尺寸
+                width = window.innerWidth;
+                height = window.innerHeight;
+            } else {
+                // 非全屏状态下使用容器尺寸
+                width = mountRef.current.clientWidth;
+                height = mountRef.current.clientHeight;
+            }
+    
+            // 更新渲染器尺寸
+            rendererRef.current.setSize(width, height, true);
+            mountRef.current.style.width = `${width}px`;
+            mountRef.current.style.height = `${height}px`;
+    
+            // 更新相机
+            cameraRef.current.aspect = width / height;
+            cameraRef.current.updateProjectionMatrix();
+    
+            // 确保场景居中
+            if (sceneRef.current) {
+                const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+                createThickAxis(sceneRef.current, spaceSize, false);
+                addAxisLabels(sceneRef.current, axisLength);
+                rendererRef.current.render(sceneRef.current, cameraRef.current);
+            }
+        }
+    }, [isFullScreen, spaceSize, createThickAxis, addAxisLabels]);
+
+
+
     // 然后修改 handleTouchMove
     const handleTouchMove = useCallback((e) => {
         e.preventDefault();
@@ -371,7 +399,11 @@ const ThreeScene = () => {
                 } else {
                     if (mountRef.current?.requestFullscreen) {
                         await mountRef.current.requestFullscreen();
+                        await mountRef.current.requestFullscreen();
+
                     } else if (mountRef.current?.webkitRequestFullscreen) {
+                        mountRef.current.style.zIndex = "1"; // 添加这行
+
                         await mountRef.current.webkitRequestFullscreen();
                     }
                 }
@@ -389,8 +421,10 @@ const ThreeScene = () => {
                         mountRef.current.removeEventListener('touchmove', handleTouchMove);
                     }
                 } else {
+                    mountRef.current.style.zIndex = ""; // 添加这行
                     if (document.exitFullscreen) {
                         await document.exitFullscreen();
+
                     } else if (document.webkitExitFullscreen) {
                         await document.webkitExitFullscreen();
                     }
@@ -1205,8 +1239,13 @@ const ThreeScene = () => {
                         sx={{ 
                             width: '100%',
                             height: '100%',
-                            bgcolor: 'grey.100'
+                            bgcolor: 'grey.100',
+                            '&.fullscreen': {
+                                width: '100vw',
+                                height: '100vh'
+                            }
                         }}
+                        className={isFullScreen ? 'fullscreen' : ''}
                     />
 
                     {/* 视图控制 */}
