@@ -21,6 +21,11 @@ const IssuesAndTodos = () => {
     window.location.href = "/thr";
   };
 
+  // 跳转到 /back 路径
+  const goToFor = () => {
+    window.location.href = "/for";
+  };
+
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>问题和代办列表</h1>
@@ -38,6 +43,9 @@ const IssuesAndTodos = () => {
         </button>
         <button style={styles.button} onClick={goToThr}>
           访问 /thr 
+        </button>
+        <button style={styles.button} onClick={goToFor}>
+          访问 /for 
         </button>
       </div>
 
@@ -159,3 +167,13 @@ const styles = {
 
 
 export default IssuesAndTodos;
+
+
+
+// 全屏后再次退出，缩略图的坐标系不居中
+
+// 全屏按钮在全屏状态下还是不存在
+
+
+// two和thr发给，让他修改旧的
+// 旧的可以用，就是两个问题
