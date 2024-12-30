@@ -44,6 +44,10 @@ const ThreeScene = () => {
     const cameraRotation = useRef({ x: 0, y: 0 });
     const toggleFullScreenRef = useRef(null);
     const mainRef = useRef(null);
+    const [inputRecords, setInputRecords] = useState([]);
+    const [inputValues, setInputValues] = useState({ x: '', y: '', z: '' });
+
+
 
     // --- State ---
     const [coordinates, setCoordinates] = useState({ x: 0, y: 0, z: 0 });
@@ -1241,6 +1245,81 @@ const ThreeScene = () => {
                                     </Button>
                                 </AccordionDetails>
                         </Accordion>
+
+                        {/* 暂时保存用户输入的模型数据，等待后续发送到后端进行处理 */}
+                        <Accordion sx={{ mt: 2 }} defaultExpanded>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <SettingsIcon sx={{ mr: 1 }} />
+                                    <Typography>Input Records</Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Box sx={{ '& > :not(style)': { mb: 2 } }}>
+                                    <TextField
+                                        fullWidth
+                                        label="X"
+                                        value={inputValues.x}
+                                        onChange={(e) => setInputValues(prev => ({ ...prev, x: e.target.value }))}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Y"
+                                        value={inputValues.y}
+                                        onChange={(e) => setInputValues(prev => ({ ...prev, y: e.target.value }))}
+                                        size="small"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Z"
+                                        value={inputValues.z}
+                                        onChange={(e) => setInputValues(prev => ({ ...prev, z: e.target.value }))}
+                                        size="small"
+                                    />
+                                    
+                                    <Button
+                                        variant="contained"
+                                        fullWidth
+                                        onClick={() => {
+                                            setInputRecords(prev => [...prev, { ...inputValues }]);
+                                            setInputValues({ x: '', y: '', z: '' }); // 清空输入
+                                        }}
+                                    >
+                                        Save
+                                    </Button>
+
+                                    {/* 显示记录 */}
+                                    {inputRecords.length > 0 && (
+                                        <Box sx={{ mt: 1 }}>
+                                            {inputRecords.map((record, index) => (
+                                                <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
+                                                    {index + 1}. X: {record.x}, Y: {record.y}, Z: {record.z}
+                                                </Typography>
+                                            ))}
+                                        </Box>
+                                    )}
+                                </Box>
+                            </AccordionDetails>
+                        </Accordion>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     </Box>
                 </Box>
                 )}
