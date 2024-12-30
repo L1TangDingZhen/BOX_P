@@ -16,4 +16,4 @@ RUN npm install
 
 EXPOSE 3000
 
-CMD ["npx", "react-scripts", "start"]
+CMD ["npm", "start"]
