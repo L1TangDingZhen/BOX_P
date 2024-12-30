@@ -43,6 +43,7 @@ const ThreeScene = () => {
     const mousePosition = useRef({ x: 0, y: 0 });
     const cameraRotation = useRef({ x: 0, y: 0 });
     const toggleFullScreenRef = useRef(null);
+    const mainRef = useRef(null);
 
     // --- State ---
     const [coordinates, setCoordinates] = useState({ x: 0, y: 0, z: 0 });
@@ -363,7 +364,7 @@ const ThreeScene = () => {
             const camera = cameraRef.current;
             const currentPosition = camera.position.clone();
             const currentUp = camera.up.clone();
-
+    
             if (!isFullScreen) {
                 setIsFullScreen(true);
                 if (isIOS) {
@@ -373,16 +374,16 @@ const ThreeScene = () => {
                         mountRef.current.style.left = "0";
                         mountRef.current.style.width = "100vw";
                         mountRef.current.style.height = "100vh";
-                        mountRef.current.style.zIndex = "9999";
+                        mountRef.current.style.zIndex = "999";
                         mountRef.current.style.backgroundColor = "#f0f0f0";
-    
+        
                         mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
                     }
                 } else {
-                    if (mountRef.current?.requestFullscreen) {
-                        await mountRef.current.requestFullscreen();
-                    } else if (mountRef.current?.webkitRequestFullscreen) {
-                        await mountRef.current.webkitRequestFullscreen();
+                    if (mainRef.current?.requestFullscreen) { // 修改这里
+                        await mainRef.current.requestFullscreen();
+                    } else if (mainRef.current?.webkitRequestFullscreen) {
+                        await mainRef.current.webkitRequestFullscreen();
                     }
                 }
             } else {
@@ -395,7 +396,7 @@ const ThreeScene = () => {
                         mountRef.current.style.width = "";
                         mountRef.current.style.height = "";
                         mountRef.current.style.zIndex = "";
-    
+        
                         mountRef.current.removeEventListener('touchmove', handleTouchMove);
                     }
                 } else {
@@ -409,9 +410,9 @@ const ThreeScene = () => {
     
             // 无论是进入还是退出全屏，都延迟执行重绘操作
             setTimeout(() => {
-                if (mountRef.current && rendererRef.current && cameraRef.current) {
+                if (mainRef.current && rendererRef.current && cameraRef.current) {
                     // 重新设置渲染器尺寸
-                    const container = mountRef.current;
+                    const container = mainRef.current;
                     const width = container.clientWidth;
                     const height = container.clientHeight;
                     
@@ -436,7 +437,7 @@ const ThreeScene = () => {
                     cameraRef.current.up.copy(currentUp);
                     cameraRef.current.lookAt(0, 0, 0);
                 }
-
+    
                 // 处理场景重绘
                 handleResize();
                 if (sceneRef.current) {
@@ -448,7 +449,7 @@ const ThreeScene = () => {
                     createThickAxis(scene, spaceSize, false);
                     addAxisLabels(scene, Math.max(spaceSize.x, spaceSize.y, spaceSize.z));
                 }
-
+    
                 // 确保渲染更新
                 if (rendererRef.current && sceneRef.current && cameraRef.current) {
                     rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -458,7 +459,7 @@ const ThreeScene = () => {
             console.error("Error toggling fullscreen:", err);
         }
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
-
+    
 
     const calculateLayers = useCallback(() => {
         if (cubes.length === 0) {
@@ -1046,7 +1047,9 @@ const ThreeScene = () => {
 
     return (
         <>
-            <Box sx={{ 
+            <Box
+                ref={mainRef}
+                sx={{ 
                 display: 'flex', 
                 height: '100vh',
                 bgcolor: '#f5f5f5',
@@ -1054,6 +1057,7 @@ const ThreeScene = () => {
             }}>
 
                 {/* 左侧控制面板 */}
+                {!isFullScreen && (
                 <Box sx={{ 
                     position: 'absolute',  
                     top: 24,
@@ -1239,7 +1243,7 @@ const ThreeScene = () => {
                         </Accordion>
                     </Box>
                 </Box>
-
+                )}
 
                 {/* 主渲染区域 */}
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -1250,11 +1254,13 @@ const ThreeScene = () => {
                         sx={{ 
                             width: '100%',
                             height: '100%',
-                            bgcolor: 'grey.100'
+                            bgcolor: 'grey.100',
+                            position: 'relative' // 确保定位
                         }}
                     />
 
                     {/* 视图控制 */}
+                    {!isFullScreen && (
                     <Box sx={{
                         position: 'absolute',
                         bottom: '24px',
@@ -1304,10 +1310,10 @@ const ThreeScene = () => {
                             </Button>
                         )}
                     </Box>
-
-
+                    )}
 
                     {/* 层级控制 */}
+                    {!isFullScreen && (
                     <Box sx={{
                         position: 'absolute',
                         // left: 24,
@@ -1364,8 +1370,10 @@ const ThreeScene = () => {
                             />
                         </Box>
                     </Box>
+                    )}
 
                     {/* 模型列表 */}
+                    {!isFullScreen && (
                     <Card sx={{
                         position: 'absolute',
                         right: '24px',
@@ -1416,33 +1424,41 @@ const ThreeScene = () => {
                             </Box>
                         </CardContent>
                     </Card>
-                </Box>
-            </Box>
+                    )}
 
-            {/* 全屏按钮 */}
-            <Box
-                sx={{
-                    position: 'fixed',
-                    bottom: 24,
-                    right: 24,
-                    zIndex: 999999
-                }}
-            >
-                <Button
-                    variant="outlined"
-                    onClick={toggleFullScreen}
-                    sx={{
-                        minWidth: 'auto',
-                        p: 1,
-                        bgcolor: 'rgba(0, 0, 0, 0.4)',
-                        color: 'white',
-                        '&:hover': {
-                            bgcolor: 'rgba(0, 0, 0, 0.6)'
-                        }
-                    }}
-                >
-                    {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-                </Button>
+                    {/* 全屏按钮 */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            bottom: 24,
+                            right: 24,
+                            zIndex: 9999999,  // 保持最高层级
+                            pointerEvents: 'auto', // 确保可点击
+                            '@media (max-height: 500px)': {
+                                bottom: 16  // 在全屏时如果高度较小，稍微调整位置
+                            }
+                        }}
+                    >
+                        <Button
+                            variant="outlined"
+                            onClick={toggleFullScreen}
+                            sx={{
+                                minWidth: 'auto',
+                                p: 1,
+                                bgcolor: 'rgba(0, 0, 0, 0.4)',
+                                color: 'white',
+                                '&:hover': {
+                                    bgcolor: 'rgba(0, 0, 0, 0.6)'
+                                },
+                                ...(isFullScreen && {
+                                    boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)'
+                                })
+                                }}
+                        >
+                            {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                        </Button>
+                    </Box>
+                </Box>
             </Box>
         </>
     );
