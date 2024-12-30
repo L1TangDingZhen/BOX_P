@@ -1249,7 +1249,7 @@ const ThreeScene = () => {
                         </Accordion>
 
                         {/* 暂时保存用户输入的模型数据，等待后续发送到后端进行处理 */}
-                        <Accordion sx={{ mt: 2 }} defaultExpanded>
+                        <Accordion sx={{ mt: 2 }} >
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                     <SettingsIcon sx={{ mr: 1 }} />

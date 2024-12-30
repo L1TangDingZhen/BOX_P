@@ -1233,7 +1233,7 @@ const ThreeScene = () => {
                                                         sceneRef.current.modelGroup.add(cubeMesh);
                                                         newCube.mesh = cubeMesh;
                                                     } else {
-                                                        alert("空间不足或与其他长方体冲突！");
+                                                        alert("Insufficient space or conflict with other rectangular prisms!");
                                                     }
                                                 }}
                                             >
