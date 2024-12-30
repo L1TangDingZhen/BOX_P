@@ -7,6 +7,7 @@ class CoordinateSerializer(serializers.Serializer):
     z = serializers.FloatField(required=True)
 
 class ModelInfo(serializers.Serializer):
+    space_size = CoordinateSerializer(required=True)
     order = serializers.IntegerField(min_value=0)
     width = serializers.FloatField(min_value=0)
     height = serializers.FloatField(min_value=0)
