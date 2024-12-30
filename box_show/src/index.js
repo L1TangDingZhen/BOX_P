@@ -6,7 +6,7 @@ import Box from './box/box';
 import Back from './box/back';
 import Two from './box/two';
 import Thr from './box/thr';
-import For from './box/for';
+import Fou from './box/for';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -20,7 +20,7 @@ root.render(
         <Route path="/back" element={<Back />} />
         <Route path="/two" element={<Two />} />
         <Route path="/thr" element={<Thr />} />
-        <Route path="/for" element={<For />} />
+        <Route path="/fou" element={<Fou />} />
 
       </Routes>
     </Router>

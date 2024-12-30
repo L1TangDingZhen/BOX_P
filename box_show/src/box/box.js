@@ -22,8 +22,8 @@ const IssuesAndTodos = () => {
   };
 
   // 跳转到 /back 路径
-  const goToFor = () => {
-    window.location.href = "/for";
+  const goToFou = () => {
+    window.location.href = "/fou";
   };
 
   return (
@@ -44,8 +44,8 @@ const IssuesAndTodos = () => {
         <button style={styles.button} onClick={goToThr}>
           访问 /thr 
         </button>
-        <button style={styles.button} onClick={goToFor}>
-          访问 /for 
+        <button style={styles.button} onClick={goToFou}>
+          访问 /fou 
         </button>
       </div>
 
