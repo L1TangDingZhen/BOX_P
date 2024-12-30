@@ -62,7 +62,7 @@ const IssuesAndTodos = () => {
           <li>超大数值会卡住</li>
           <li>iPad退出全屏没有问题 iPhone无法退出全屏</li>
           <li>iPad退出当前页面和正常向下晃动混淆</li>
-          <li>页面缩略图在全屏后大小有变化</li>
+          <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
 
         </ul>
       </div>
@@ -82,12 +82,12 @@ const IssuesAndTodos = () => {
       <div style={styles.section}>
         <h2 style={styles.subHeader}>代办</h2>
         <ul style={styles.list}>
-          <li>用作分层的进度条</li>
+          <li style={styles.strikethrough}>用作分层的进度条</li>
           <li style={styles.strikethrough}>拖拽？</li>
-          <li>前一个物体变为灰色</li>
-          <li>三视图角度</li>
-          <li>物理的放置顺序和列表</li>
-          <li>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
+          <li style={styles.strikethrough}>前一个物体变为灰色</li>
+          <li style={styles.strikethrough}>三视图角度</li>
+          <li style={styles.strikethrough}>物理的放置顺序和列表</li>
+          <li style={styles.strikethrough}>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
         </ul>
       </div>
 
@@ -109,8 +109,8 @@ const IssuesAndTodos = () => {
           <li>超大数值会卡住</li>
           <li>标签的长度是取最大值</li>
           <li>先设置长方体尺寸后，再设置空间尺寸没有设置检测机制</li>
-          <li>非全屏状态下，全屏并推出摄像头便宜问题，未居中</li>
-          <li>全屏状态下按钮依旧不可见</li>
+          <li style={styles.strikethrough}>非全屏状态下，全屏并推出摄像头偏移问题，未居中</li>
+          <li style={styles.strikethrough}>全屏状态下按钮依旧不可见</li>
 
         </ul>
       </div>

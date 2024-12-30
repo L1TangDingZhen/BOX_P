@@ -302,15 +302,15 @@ const ThreeScene = () => {
 
         // iOS 设备的滑动退出处理
         if (isIOS && isFullScreen) {
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-            const threshold = window.innerHeight / 4;
-            console.log('Delta Y:', deltaY, 'Threshold:', threshold);
+            // const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            // const threshold = window.innerHeight / 4;
+            // console.log('Delta Y:', deltaY, 'Threshold:', threshold);
             
-            if (deltaY > threshold) {
-                // 使用 ref 调用 toggleFullScreen
-                toggleFullScreenRef.current?.();
-                return;
-            }
+            // if (deltaY > threshold) {
+            //     // 使用 ref 调用 toggleFullScreen
+            //     toggleFullScreenRef.current?.();
+            //     return;
+            // }
         }
         
         if (!cameraRef.current || !isMouseDown.current) return;
@@ -372,17 +372,17 @@ const ThreeScene = () => {
             if (!isFullScreen) {
                 setIsFullScreen(true);
                 if (isIOS) {
-                    if (mountRef.current) {
-                        mountRef.current.style.position = "fixed";
-                        mountRef.current.style.top = "0";
-                        mountRef.current.style.left = "0";
-                        mountRef.current.style.width = "100vw";
-                        mountRef.current.style.height = "100vh";
-                        mountRef.current.style.zIndex = "999";
-                        mountRef.current.style.backgroundColor = "#f0f0f0";
+                    // if (mountRef.current) {
+                    //     mountRef.current.style.position = "fixed";
+                    //     mountRef.current.style.top = "0";
+                    //     mountRef.current.style.left = "0";
+                    //     mountRef.current.style.width = "100vw";
+                    //     mountRef.current.style.height = "100vh";
+                    //     mountRef.current.style.zIndex = "999";
+                    //     mountRef.current.style.backgroundColor = "#f0f0f0";
         
-                        mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    }
+                    //     mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    // }
                 } else {
                     if (mainRef.current?.requestFullscreen) { // 修改这里
                         await mainRef.current.requestFullscreen();
@@ -393,16 +393,16 @@ const ThreeScene = () => {
             } else {
                 setIsFullScreen(false);
                 if (isIOS) {
-                    if (mountRef.current) {
-                        mountRef.current.style.position = "";
-                        mountRef.current.style.top = "";
-                        mountRef.current.style.left = "";
-                        mountRef.current.style.width = "";
-                        mountRef.current.style.height = "";
-                        mountRef.current.style.zIndex = "";
+                    // if (mountRef.current) {
+                    //     mountRef.current.style.position = "";
+                    //     mountRef.current.style.top = "";
+                    //     mountRef.current.style.left = "";
+                    //     mountRef.current.style.width = "";
+                    //     mountRef.current.style.height = "";
+                    //     mountRef.current.style.zIndex = "";
         
-                        mountRef.current.removeEventListener('touchmove', handleTouchMove);
-                    }
+                    //     mountRef.current.removeEventListener('touchmove', handleTouchMove);
+                    // }
                 } else {
                     if (document.exitFullscreen) {
                         await document.exitFullscreen();
@@ -462,6 +462,7 @@ const ThreeScene = () => {
         } catch (err) {
             console.error("Error toggling fullscreen:", err);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
     
 
@@ -533,15 +534,15 @@ const ThreeScene = () => {
         e.preventDefault();
         // iOS 设备的滑动退出处理
         if (isIOS && isFullScreen) {
-            const deltaY = e.touches[0].clientY - mousePosition.current.y;
-            // 降低退出阈值为屏幕高度的四分之一
-            const threshold = window.innerHeight / 4;
-            console.log('Delta Y:', deltaY, 'Threshold:', threshold); // 调试输出
+            // const deltaY = e.touches[0].clientY - mousePosition.current.y;
+            // // 降低退出阈值为屏幕高度的四分之一
+            // const threshold = window.innerHeight / 4;
+            // console.log('Delta Y:', deltaY, 'Threshold:', threshold); // 调试输出
             
-            if (deltaY > threshold) {
-                toggleFullScreen();
-                return;
-            }
+            // if (deltaY > threshold) {
+            //     toggleFullScreen();
+            //     return;
+            // }
         }
 
         if (!isMouseDown.current || !cameraRef.current) return;
@@ -582,6 +583,7 @@ const ThreeScene = () => {
             x: e.clientX,
             y: e.clientY
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isFullScreen, isIOS, toggleFullScreen, viewMode]);
     
     
@@ -983,17 +985,17 @@ const ThreeScene = () => {
     // 在组件挂载时添加全局触摸事件监听
     useEffect(() => {
         if (isIOS && isFullScreen) {
-            const handleGlobalTouchMove = (e) => {
-                if (e.touches.length === 1) {
-                    handleTouchMove(e);
-                }
-            };
+            // const handleGlobalTouchMove = (e) => {
+            //     if (e.touches.length === 1) {
+            //         handleTouchMove(e);
+            //     }
+            // };
             
-            document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+            // document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
             
-            return () => {
-                document.removeEventListener('touchmove', handleGlobalTouchMove);
-            };
+            // return () => {
+            //     document.removeEventListener('touchmove', handleGlobalTouchMove);
+            // };
         }
     }, [isIOS, isFullScreen, handleTouchMove]);
 
