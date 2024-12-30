@@ -60,8 +60,8 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>全屏按钮需要优化位置</li>
           <li style={styles.strikethrough}>长方体尺寸有验证是否冲突，！但起始位置没有验证（没有验证加入长方体后位置是否超出空间大小</li>
           <li>超大数值会卡住</li>
-          <li>iPad退出全屏没有问题 iPhone无法退出全屏</li>
-          <li>iPad退出当前页面和正常向下晃动混淆</li>
+          <li style={styles.strikethrough}>iPad退出全屏没有问题 iPhone无法退出全屏</li>
+          <li style={styles.strikethrough}>iPad退出当前页面和正常向下晃动混淆</li>
           <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
 
         </ul>
@@ -105,7 +105,7 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>物理的放置顺序和列表</li>
           <li style={styles.strikethrough}>是否两个进度条，一个用作排放顺序，一个用作层数控制</li>
           <li style={styles.strikethrough}>前一个物体变为灰色</li>
-          <li>iPhone和iPad无法向下滑动退出全屏状态</li>
+          <li style={styles.strikethrough}>iPhone和iPad无法向下滑动退出全屏状态</li>
           <li>超大数值会卡住</li>
           <li>标签的长度是取最大值</li>
           <li>先设置长方体尺寸后，再设置空间尺寸没有设置检测机制</li>
