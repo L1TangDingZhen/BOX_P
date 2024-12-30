@@ -359,6 +359,11 @@ const ThreeScene = () => {
 
     const toggleFullScreen = useCallback(async () => {
         try {
+            // 在更改全屏状态之前保存相机的当前状态
+            const camera = cameraRef.current;
+            const currentPosition = camera.position.clone();
+            const currentUp = camera.up.clone();
+
             if (!isFullScreen) {
                 setIsFullScreen(true);
                 if (isIOS) {
@@ -404,24 +409,56 @@ const ThreeScene = () => {
     
             // 无论是进入还是退出全屏，都延迟执行重绘操作
             setTimeout(() => {
+                if (mountRef.current && rendererRef.current && cameraRef.current) {
+                    // 重新设置渲染器尺寸
+                    const container = mountRef.current;
+                    const width = container.clientWidth;
+                    const height = container.clientHeight;
+                    
+                    // 先设置渲染器尺寸
+                    rendererRef.current.setSize(width, height, false);
+                    
+                    // 设置画布样式以确保居中
+                    const canvas = rendererRef.current.domElement;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    canvas.style.position = 'absolute';
+                    canvas.style.left = '50%';
+                    canvas.style.top = '50%';
+                    canvas.style.transform = 'translate(-50%, -50%)';
+                    
+                    // 更新相机宽高比
+                    cameraRef.current.aspect = width / height;
+                    cameraRef.current.updateProjectionMatrix();
+                    
+                    // 恢复保存的相机状态
+                    cameraRef.current.position.copy(currentPosition);
+                    cameraRef.current.up.copy(currentUp);
+                    cameraRef.current.lookAt(0, 0, 0);
+                }
+
+                // 处理场景重绘
                 handleResize();
                 if (sceneRef.current) {
                     const scene = sceneRef.current;
-                    // 清除现有的轴线和标签
                     scene.children = scene.children.filter(child => 
                         !(child instanceof THREE.Line) && 
                         !(child instanceof THREE.Mesh && child.geometry?.type === 'TextGeometry')
                     );
-                    // 重新创建轴线和标签
                     createThickAxis(scene, spaceSize, false);
                     addAxisLabels(scene, Math.max(spaceSize.x, spaceSize.y, spaceSize.z));
+                }
+
+                // 确保渲染更新
+                if (rendererRef.current && sceneRef.current && cameraRef.current) {
+                    rendererRef.current.render(sceneRef.current, cameraRef.current);
                 }
             }, 100);
         } catch (err) {
             console.error("Error toggling fullscreen:", err);
         }
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
-    
+
 
     const calculateLayers = useCallback(() => {
         if (cubes.length === 0) {
@@ -1007,7 +1044,6 @@ const ThreeScene = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
 
-
     return (
         <>
             <Box sx={{ 
@@ -1276,7 +1312,6 @@ const ThreeScene = () => {
                         position: 'absolute',
                         // left: 24,
                         right: '24px',             // 固定到最右侧
-
                         top: '50%',
                         transform: 'translateY(-50%)',
                         bgcolor: 'rgba(0, 0, 0, 0.4)',
@@ -1286,6 +1321,9 @@ const ThreeScene = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        // 添加最小高度和溢出控制
+                        minHeight: '240px',        // 确保容器有足够高度
+                        overflow: 'hidden'         // 防止内容溢出
                     }}>
                         <Button
                             size="small"

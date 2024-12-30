@@ -30,6 +30,8 @@ import {
     ViewInAr as ViewInArIcon,
 } from '@mui/icons-material';
 
+
+
 const ThreeScene = () => {
     // --- Refs ---
     const mountRef = useRef(null);
@@ -39,17 +41,9 @@ const ThreeScene = () => {
     const cameraRef = useRef(null);
     const isMouseDown = useRef(false);
     const mousePosition = useRef({ x: 0, y: 0 });
-    const cameraRotation = useRef({ MuiOutlinedInputx: 0, y: 0 });
+    const cameraRotation = useRef({ x: 0, y: 0 });
     const toggleFullScreenRef = useRef(null);
-    const textFieldStyle = {
-        '& .MuiInputBase-input': {
-            color: '#000',  // 文本颜色
-        },
-        '& .MuiOutlinedInput-root': {
-            backgroundColor: 'white',  // 输入框背景色
-        }
-    };
-    
+
     // --- State ---
     const [coordinates, setCoordinates] = useState({ x: 0, y: 0, z: 0 });
     const [dimensions, setDimensions] = useState({ width: 1, height: 1, depth: 1 });
@@ -63,6 +57,19 @@ const ThreeScene = () => {
     // --- Constants ---
     const colorSet = new Set();
     const isIOS = /iPhone|iPad/.test(navigator.userAgent);
+    // 对于 TextField 的占位符样式，使用 MUI 的标准写法
+    const textFieldStyle = {
+        '& .MuiInputBase-input': {
+            '&::placeholder': {
+                color: 'rgba(0, 0, 0, 0.6)'
+            }
+        },
+        '& input': {
+            '&::placeholder': {
+                color: 'rgba(0, 0, 0, 0.6)'
+            }
+        }
+    };
     const [viewMode, setViewMode] = useState('free'); // 'free', 'front', 'side', 'top'
     const [layers, setLayers] = useState([]); // 存储每一层的模型
     const [currentLayer, setCurrentLayer] = useState(-1); // -1 表示不高亮任何层
@@ -167,14 +174,15 @@ const ThreeScene = () => {
             const tickPoints = [];
 
             if (axis === "x") {
-            tickPoints.push(new THREE.Vector3(i, -0.1, 0));
-            tickPoints.push(new THREE.Vector3(i, 0.1, 0));
+
+                tickPoints.push(new THREE.Vector3(i, -0.1, 0));
+                tickPoints.push(new THREE.Vector3(i, 0.1, 0));
             } else if (axis === "y") {
-            tickPoints.push(new THREE.Vector3(-0.1, i, 0));
-            tickPoints.push(new THREE.Vector3(0.1, i, 0));
+                tickPoints.push(new THREE.Vector3(-0.1, i, 0));
+                tickPoints.push(new THREE.Vector3(0.1, i, 0));
             } else if (axis === "z") {
-            tickPoints.push(new THREE.Vector3(0, -0.1, i));
-            tickPoints.push(new THREE.Vector3(0, 0.1, i));
+                tickPoints.push(new THREE.Vector3(0, -0.1, i));
+                tickPoints.push(new THREE.Vector3(0, 0.1, i));
             }
 
             tickGeometry.setFromPoints(tickPoints);
@@ -185,13 +193,13 @@ const ThreeScene = () => {
             "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
             (font) => {
                 const textGeometry = new TextGeometry(i.toString(), {
-                font: font,
-                size: 0.3,
-                height: 0.05,
+                    font: font,
+                    size: 0.3,
+                    depth: 0.05,
                 });
                 const textMesh = new THREE.Mesh(
-                textGeometry,
-                new THREE.MeshBasicMaterial({ color: 0x000000 })
+                    textGeometry,
+                    new THREE.MeshBasicMaterial({ color: 0x000000 })
                 );
 
                 if (axis === "x") textMesh.position.set(i, -0.5, 0);
@@ -259,7 +267,7 @@ const ThreeScene = () => {
                     const textGeometry = new TextGeometry(label, {
                         font: font,
                         size: 0.5,
-                        height: 0.1,
+                        depth: 0.1,
                     });
                     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
                     
@@ -349,9 +357,13 @@ const ThreeScene = () => {
     }, [isIOS, isFullScreen]);
 
 
-    // 修改 handleFullScreen 函数
     const toggleFullScreen = useCallback(async () => {
         try {
+            // 在更改全屏状态之前保存相机的当前状态
+            const camera = cameraRef.current;
+            const currentPosition = camera.position.clone();
+            const currentUp = camera.up.clone();
+
             if (!isFullScreen) {
                 setIsFullScreen(true);
                 if (isIOS) {
@@ -363,7 +375,7 @@ const ThreeScene = () => {
                         mountRef.current.style.height = "100vh";
                         mountRef.current.style.zIndex = "9999";
                         mountRef.current.style.backgroundColor = "#f0f0f0";
-
+    
                         mountRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
                     }
                 } else {
@@ -383,7 +395,7 @@ const ThreeScene = () => {
                         mountRef.current.style.width = "";
                         mountRef.current.style.height = "";
                         mountRef.current.style.zIndex = "";
-
+    
                         mountRef.current.removeEventListener('touchmove', handleTouchMove);
                     }
                 } else {
@@ -394,26 +406,59 @@ const ThreeScene = () => {
                     }
                 }
             }
-
+    
             // 无论是进入还是退出全屏，都延迟执行重绘操作
             setTimeout(() => {
+                if (mountRef.current && rendererRef.current && cameraRef.current) {
+                    // 重新设置渲染器尺寸
+                    const container = mountRef.current;
+                    const width = container.clientWidth;
+                    const height = container.clientHeight;
+                    
+                    // 先设置渲染器尺寸
+                    rendererRef.current.setSize(width, height, false);
+                    
+                    // 设置画布样式以确保居中
+                    const canvas = rendererRef.current.domElement;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    canvas.style.position = 'absolute';
+                    canvas.style.left = '50%';
+                    canvas.style.top = '50%';
+                    canvas.style.transform = 'translate(-50%, -50%)';
+                    
+                    // 更新相机宽高比
+                    cameraRef.current.aspect = width / height;
+                    cameraRef.current.updateProjectionMatrix();
+                    
+                    // 恢复保存的相机状态
+                    cameraRef.current.position.copy(currentPosition);
+                    cameraRef.current.up.copy(currentUp);
+                    cameraRef.current.lookAt(0, 0, 0);
+                }
+
+                // 处理场景重绘
                 handleResize();
                 if (sceneRef.current) {
                     const scene = sceneRef.current;
-                    // 清除现有的轴线和标签
                     scene.children = scene.children.filter(child => 
                         !(child instanceof THREE.Line) && 
                         !(child instanceof THREE.Mesh && child.geometry?.type === 'TextGeometry')
                     );
-                    // 重新创建轴线和标签
                     createThickAxis(scene, spaceSize, false);
                     addAxisLabels(scene, Math.max(spaceSize.x, spaceSize.y, spaceSize.z));
+                }
+
+                // 确保渲染更新
+                if (rendererRef.current && sceneRef.current && cameraRef.current) {
+                    rendererRef.current.render(sceneRef.current, cameraRef.current);
                 }
             }, 100);
         } catch (err) {
             console.error("Error toggling fullscreen:", err);
         }
     }, [isFullScreen, isIOS, handleTouchMove, handleResize, spaceSize, createThickAxis, addAxisLabels]);
+
 
     const calculateLayers = useCallback(() => {
         if (cubes.length === 0) {
@@ -771,7 +816,7 @@ const ThreeScene = () => {
 
 
 
-    // 修改处理全屏变化的 Effect
+    // --- 完整的全屏变化 Effect ---
     useEffect(() => {
         const handleFullScreenChange = () => {
             const isCurrentlyFullScreen = !!document.fullscreenElement;
@@ -860,6 +905,10 @@ const ThreeScene = () => {
         renderer.render(scene, camera);
         };
         animate();
+
+
+
+
 
         // Cleanup
         return () => {
@@ -994,8 +1043,6 @@ const ThreeScene = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
-
-
 
     return (
         <>
@@ -1258,14 +1305,11 @@ const ThreeScene = () => {
                         )}
                     </Box>
 
-
-
                     {/* 层级控制 */}
                     <Box sx={{
                         position: 'absolute',
                         // left: 24,
                         right: '24px',             // 固定到最右侧
-
                         top: '50%',
                         transform: 'translateY(-50%)',
                         bgcolor: 'rgba(0, 0, 0, 0.4)',
@@ -1275,6 +1319,9 @@ const ThreeScene = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        // 添加最小高度和溢出控制
+                        minHeight: '240px',        // 确保容器有足够高度
+                        overflow: 'hidden'         // 防止内容溢出
                     }}>
                         <Button
                             size="small"
