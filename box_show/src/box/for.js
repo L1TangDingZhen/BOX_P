@@ -29,7 +29,7 @@ import {
     FullscreenExit as FullscreenExitIcon,
     // Close as CloseIcon,
     ViewInAr as ViewInArIcon,
-    Delete as DeleteIcon,
+    Clear as ClearIcon,
 } from '@mui/icons-material';
 
 
@@ -83,7 +83,7 @@ const ThreeScene = () => {
     const handleDeleteRecord = (indexToDelete) => {
         setInputRecords(prev => prev.filter((_, index) => index !== indexToDelete));
     };
-    
+
       // 辅助函数
     const getRandomColor = () => {
         let color;
@@ -604,15 +604,17 @@ const ThreeScene = () => {
         );
 
         const newRadius = radius * (1 + direction * zoomSpeed);
-        const minRadius = 5;
-        const maxRadius = 50;
+        
+        const maxDimension = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+        const minRadius = Math.max(1, maxDimension * 0.1); // 最小为坐标系最大尺寸的10%
+        const maxRadius = Math.max(50, maxDimension * 3);  // 最大为坐标系最大尺寸的3倍
         
         if (newRadius >= minRadius && newRadius <= maxRadius) {
         const scale = newRadius / radius;
         camera.position.multiplyScalar(scale);
         camera.lookAt(0, 0, 0);
         }
-    }, []);
+    }, [spaceSize]);
 
     const handleTouchStart = useCallback((e) => {
         e.preventDefault();
@@ -805,7 +807,8 @@ const ThreeScene = () => {
         if (!cameraRef.current) return;
 
         const camera = cameraRef.current;
-        const distance = Math.max(spaceSize.x, spaceSize.y, spaceSize.z) * 2;
+        const maxDimension = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+        const distance = maxDimension * 2; // 距离为坐标系最大维度的2倍
 
         // 保存当前视图模式
         setViewMode(view);
@@ -825,7 +828,12 @@ const ThreeScene = () => {
                 break;
             case 'free':
                 // 恢复到默认的自由视角
-                camera.position.set(15, 10, 15);
+                const freeDistance = maxDimension * 1.5; // 略小于其他视图，提供更好的透视感
+                camera.position.set(
+                    freeDistance * 0.7, // x方向
+                    freeDistance * 0.5, // y方向
+                    freeDistance * 0.7  // z方向
+                );
                 camera.up.set(0, 1, 0);
                 break;
             default:
@@ -1342,7 +1350,7 @@ const ThreeScene = () => {
                                                             }
                                                         }}
                                                     >
-                                                        <DeleteIcon fontSize="small" />
+                                                        <ClearIcon fontSize="small" />
                                                     </IconButton>
                                                 </Box>
                                             ))}

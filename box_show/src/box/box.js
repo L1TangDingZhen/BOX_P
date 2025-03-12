@@ -63,6 +63,10 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>iPad退出全屏没有问题 iPhone无法退出全屏</li>
           <li style={styles.strikethrough}>iPad退出当前页面和正常向下晃动混淆</li>
           <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
+          <li style={styles.strikethrough}>超大数值保护的问题</li>
+          <li style={styles.strikethrough}>input records 可以删除修改的问题</li>
+          <li style={styles.strikethrough}>在free view的模式下，摄像头缩小后只能看到大概40左右的刻度，无法缩小到可以看到整个坐标系</li>
+          <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
 
         </ul>
       </div>
