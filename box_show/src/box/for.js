@@ -1059,7 +1059,8 @@ const ThreeScene = () => {
                 display: 'flex', 
                 height: '100vh',
                 bgcolor: '#f5f5f5',
-                position: 'relative'
+                position: 'relative',
+                overflow: 'hidden'  // 防止内容溢出
             }}>
 
                 {/* 左侧控制面板 */}
@@ -1069,6 +1070,8 @@ const ThreeScene = () => {
                     top: 24,
                     left: 24,
                     width: 320,
+                    maxHeight: 'calc(100vh - 48px)', // 减去上下margin
+                    overflowY: 'auto',                // 添加垂直滚动
                     zIndex: 999999,
                     border: '5px solid rgba(0, 0, 0, 0.4)',
                     bgcolor: 'white'
