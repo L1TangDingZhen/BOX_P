@@ -30,6 +30,7 @@ import {
     // Close as CloseIcon,
     ViewInAr as ViewInArIcon,
     Clear as ClearIcon,
+    ListAlt as ListAltIcon,
 } from '@mui/icons-material';
 
 
@@ -1280,7 +1281,7 @@ const ThreeScene = () => {
                         <Accordion sx={{ mt: 2 }} >
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <SettingsIcon sx={{ mr: 1 }} />
+                                    <ListAltIcon  sx={{ mr: 1 }} />
                                     <Typography>Input Records</Typography>
                                 </Box>
                             </AccordionSummary>
