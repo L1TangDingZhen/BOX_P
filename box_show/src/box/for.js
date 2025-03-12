@@ -17,6 +17,7 @@ import {
     TextField,
     Typography,
     Box,
+    IconButton,
 } from '@mui/material';
 
 // MUI Icons
@@ -28,8 +29,8 @@ import {
     FullscreenExit as FullscreenExitIcon,
     // Close as CloseIcon,
     ViewInAr as ViewInArIcon,
+    Delete as DeleteIcon,
 } from '@mui/icons-material';
-
 
 
 const ThreeScene = () => {
@@ -79,7 +80,10 @@ const ThreeScene = () => {
     const [layers, setLayers] = useState([]); // 存储每一层的模型
     const [currentLayer, setCurrentLayer] = useState(-1); // -1 表示不高亮任何层
     const [currentModelIndex, setCurrentModelIndex] = useState(-1); // -1 表示不高亮任何模型
-
+    const handleDeleteRecord = (indexToDelete) => {
+        setInputRecords(prev => prev.filter((_, index) => index !== indexToDelete));
+    };
+    
       // 辅助函数
     const getRandomColor = () => {
         let color;
@@ -643,11 +647,24 @@ const ThreeScene = () => {
 
     const handleSpaceSizeChange = useCallback((dimension, value) => {
             const numValue = parseFloat(value);
+
+            const MAX_SIZE = 100; // 最大尺寸限制
+
+
             if (!isNaN(numValue) && numValue > 0) {
-                setSpaceSize(prev => ({
+                if (numValue > MAX_SIZE) {
+                    setSpaceSize(prev => ({
                     ...prev,
-                    [dimension]: numValue
+                    [dimension]: MAX_SIZE
                 }));
+                alert (`The maximum size is ${MAX_SIZE}`);
+                } else {
+                    // 正常设置值
+                    setSpaceSize(prev => ({
+                        ...prev,
+                        [dimension]: numValue
+                    }));
+                }
         
                 if (sceneRef.current && rendererRef.current && cameraRef.current) {
                     const camera = cameraRef.current;
@@ -1295,36 +1312,45 @@ const ThreeScene = () => {
                                     </Button>
 
                                     {/* 显示记录 */}
+
                                     {inputRecords.length > 0 && (
                                         <Box sx={{ mt: 1 }}>
                                             {inputRecords.map((record, index) => (
-                                                <Typography key={index} variant="body2" sx={{ mb: 0.5 }}>
-                                                    {index + 1}. X: {record.x}, Y: {record.y}, Z: {record.z}
-                                                </Typography>
+                                                <Box 
+                                                    key={index} 
+                                                    sx={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'space-between',
+                                                        mb: 0.5,
+                                                        bgcolor: 'rgba(0, 0, 0, 0.03)',
+                                                        p: 0.5,
+                                                        borderRadius: 1 
+                                                    }}
+                                                >
+                                                    <Typography variant="body2">
+                                                        {index + 1}. X: {record.x}, Y: {record.y}, Z: {record.z}
+                                                    </Typography>
+                                                    <IconButton 
+                                                        size="small" 
+                                                        color="error"
+                                                        onClick={() => handleDeleteRecord(index)}
+                                                        sx={{ 
+                                                            p: 0.5,
+                                                            '&:hover': {
+                                                                bgcolor: 'rgba(211, 47, 47, 0.1)'
+                                                            }
+                                                        }}
+                                                    >
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Box>
                                             ))}
                                         </Box>
                                     )}
                                 </Box>
                             </AccordionDetails>
                         </Accordion>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                     </Box>
                 </Box>
                 )}
