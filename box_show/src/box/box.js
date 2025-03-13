@@ -26,6 +26,18 @@ const IssuesAndTodos = () => {
     window.location.href = "/fou";
   };
 
+  const goToLogin = () => {
+    window.location.href = "/login";
+  };
+
+  const goToMG = () => {
+    window.location.href = "/MG";
+  };
+
+  const goToWK = () => {
+    window.location.href = "/WK";
+  };
+
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>问题和代办列表</h1>
@@ -46,6 +58,15 @@ const IssuesAndTodos = () => {
         </button>
         <button style={styles.button} onClick={goToFou}>
           访问 /fou 
+        </button>
+        <button style={styles.button} onClick={goToLogin}>
+          登录
+        </button>
+        <button style={styles.button} onClick={goToMG}>
+          Maneger
+        </button>
+        <button style={styles.button} onClick={goToWK}>
+          Worker
         </button>
       </div>
 

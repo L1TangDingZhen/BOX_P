@@ -7,6 +7,9 @@ import Back from './box/back';
 import Two from './box/two';
 import Thr from './box/thr';
 import Fou from './box/for';
+import Login from './box/login';
+import Mg from './box/mg';
+import Wk from './box/wk';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -21,7 +24,9 @@ root.render(
         <Route path="/two" element={<Two />} />
         <Route path="/thr" element={<Thr />} />
         <Route path="/fou" element={<Fou />} />
-
+        <Route path="/login" element={<Login />} />
+        <Route path="/MG" element={<Mg />} />
+        <Route path="/WK" element={<Wk />} />
       </Routes>
     </Router>
   // </React.StrictMode>
