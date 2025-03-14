@@ -16,11 +16,44 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.urls import re_path  # 添加这个导入
 from .app import views
+
+# 导入Swagger所需的库
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+# 创建Swagger视图
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Box Packing API",
+        default_version='v1',
+        description="API for box packing application",
+        terms_of_service="https://www.yourapp.com/terms/",
+        contact=openapi.Contact(email="contact@yourapp.com"),
+        license=openapi.License(name="Your License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('h/', views.h),
-    path('b/', views.post_coordinate),
-    path('c/', views.return_coordinate),
+    
+    # 用户相关API
+    path('api/register/', views.register_user, name='register'),
+    path('api/login/', views.login_user),
+    
+    # 任务相关API
+    path('api/tasks/create/', views.create_task),
+    path('api/tasks/<int:task_id>/', views.get_task),
+    path('api/users/<int:user_id>/tasks/', views.get_user_tasks),
+    path('api/workers/<int:worker_id>/tasks/', views.get_worker_tasks),
+    
+    # Swagger URLs
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
