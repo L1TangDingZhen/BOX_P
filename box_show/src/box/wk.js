@@ -14,11 +14,14 @@ import {
     IconButton,
     Stack,
     Tooltip,
+    CircularProgress,
+    Alert,
 } from '@mui/material';
 import {
     ArrowForward as NextIcon,
     ArrowBack as PreviousIcon,
     Visibility as ViewIcon,
+    Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
@@ -39,71 +42,104 @@ const WorkerConsole = () => {
     const [currentItemIndex, setCurrentItemIndex] = useState(-1);
     const [itemList, setItemList] = useState([]);
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
+    
+    // Worker and tasks states
+    const [currentUser, setCurrentUser] = useState(null);
+    const [workerTasks, setWorkerTasks] = useState([]);
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // --- Mock Data ---
-    useEffect(() => {
-        // 创建空的物品列表 - 初始状态无预置模型
-        // 仅测试显示功能用，后续删除
-        const mockItems = [
-        { 
-            id: 'item0001', 
-            width: 2, height: 1, depth: 3, 
-            x: 0, y: 0, z: 0,
-            constraints: ['Face Up'], 
-            color: '#8dd3c7' 
-        },
-        { 
-            id: 'item0002', 
-            width: 1, height: 2, depth: 1, 
-            x: 2, y: 0, z: 0,
-            constraints: ['Fragile'], 
-            color: '#bebada' 
-        },
-        { 
-            id: 'item0003', 
-            width: 3, height: 1, depth: 2, 
-            x: 0, y: 0, z: 3,
-            constraints: [], 
-            color: '#fb8072' 
-        },
-        { 
-            id: 'item0004', 
-            width: 2, height: 2, depth: 2, 
-            x: 3, y: 0, z: 3,
-            constraints: ['Face Up', 'Fragile'], 
-            color: '#80b1d3' 
-        },
-        { 
-            id: 'item0005', 
-            width: 1, height: 1, depth: 1, 
-            x: 0, y: 1, z: 0,
-            constraints: [], 
-            color: '#fdb462' 
-        },
-        { 
-            id: 'item0006', 
-            width: 2.5, height: 0.5, depth: 1.5, 
-            x: 1, y: 1, z: 3,
-            constraints: ['Face Up'], 
-            color: '#b3de69' 
-        },
-        { 
-            id: 'item0007', 
-            width: 1, height: 3, depth: 1, 
-            x: 5, y: 0, z: 0,
-            constraints: [], 
-            color: '#fccde5' 
-        },
-        { 
-            id: 'item0008', 
-            width: 1.5, height: 1.5, depth: 1.5, 
-            x: 5, y: 0, z: 2,
-            constraints: ['Fragile'], 
-            color: '#d9d9d9' 
-        },
+    // Generate a random color based on item ID for visualization
+    const getRandomColor = (id) => {
+        const colors = [
+            '#8dd3c7', '#bebada', '#fb8072', '#80b1d3', 
+            '#fdb462', '#b3de69', '#fccde5', '#d9d9d9'
         ];
-        setItemList(mockItems);
+        return colors[id % colors.length];
+    };
+
+    // Handle selection of a task - 将此函数移到fetchWorkerTasks前面
+    const handleSelectTask = useCallback((task) => {
+        setSelectedTask(task);
+        
+        // Update space size based on task's space_info
+        setSpaceSize({
+            x: task.space_info.x,
+            y: task.space_info.y,
+            z: task.space_info.z
+        });
+        
+        // Map API items to the format expected by the 3D visualization
+        const formattedItems = task.items.map(item => ({
+            id: `item${item.order_id}`,
+            name: item.name,
+            width: item.dimensions.x,
+            height: item.dimensions.y,
+            depth: item.dimensions.z,
+            x: item.position.x,
+            y: item.position.y,
+            z: item.position.z,
+            constraints: [
+                ...(item.face_up ? ['Face Up'] : []),
+                ...(item.fragile ? ['Fragile'] : [])
+            ],
+            color: getRandomColor(item.order_id) // Assign a color based on order_id
+        }));
+        
+        setItemList(formattedItems);
+        setCurrentItemIndex(-1); // Reset the selected item
     }, []);
+
+    // Fetch worker tasks from API - 现在handleSelectTask已被定义
+    const fetchWorkerTasks = useCallback(async (workerId) => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            const response = await fetch(`http://127.0.0.1:8000/api/workers/${workerId}/tasks/`);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch tasks: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            setWorkerTasks(data);
+            
+            // If tasks available, select the first one by default
+            if (data.length > 0) {
+                handleSelectTask(data[0]);
+            }
+        } catch (err) {
+            console.error('Error fetching worker tasks:', err);
+            setError(`Failed to load tasks: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    }, [handleSelectTask]);  // 依赖项包含handleSelectTask
+
+    // Load user from localStorage
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                setCurrentUser(user);
+            } catch (e) {
+                console.error('Error parsing user data from localStorage', e);
+                setError('Failed to load user information. Please log in again.');
+            }
+        } else {
+            setError('User information not found. Please log in first.');
+        }
+    }, []);
+
+    // Fetch worker tasks when component loads
+    useEffect(() => {
+        if (currentUser && currentUser.id) {
+            fetchWorkerTasks(currentUser.id);
+        }
+    }, [currentUser, fetchWorkerTasks]);
 
     // 创建网格辅助线 - 直接从for.js复制
     const createGrids = useCallback((scene, spaceSize, visible = true) => {
@@ -359,154 +395,163 @@ const WorkerConsole = () => {
     const addOrHighlightItem = useCallback((item) => {
         if (!sceneRef.current) return;
         
-        // 首先检查这个物品是否已经在场景中
+        // Clear all existing items first if there's a material issue
+        const existingItems = sceneRef.current.children.filter(
+            child => child.userData && child.userData.itemId
+        );
+        
+        // If we're switching tasks, remove all existing items
+        if (existingItems.length > 0 && !existingItems.some(mesh => mesh.userData.itemId === item.id)) {
+            existingItems.forEach(mesh => {
+                sceneRef.current.remove(mesh);
+            });
+        }
+        
+        // Now look for this specific item
         const existingMesh = sceneRef.current.children.find(
-        child => child.userData && child.userData.itemId === item.id
+            child => child.userData && child.userData.itemId === item.id
         );
         
         if (existingMesh) {
-        // 如果已存在，高亮显示
-        sceneRef.current.children.forEach(child => {
-            if (child.material && child.material.type === 'MeshPhongMaterial') {
-            if (child.userData && child.userData.itemId === item.id) {
-                child.material.opacity = 0.8;
-                child.material.color.set(item.color || 0x3498db);
-            } else {
-                child.material.opacity = 0.3;
-                child.material.color.set(child.userData.originalColor || 0xcccccc);
-            }
-            }
-        });
+            // If already exists, highlight it
+            sceneRef.current.children.forEach(child => {
+                if (child.material && child.material.type === 'MeshPhongMaterial') {
+                    if (child.userData && child.userData.itemId === item.id) {
+                        child.material.opacity = 0.8;
+                        child.material.color.set(item.color || 0x3498db);
+                    } else {
+                        child.material.opacity = 0.3;
+                        child.material.color.set(child.userData.originalColor || 0xcccccc);
+                    }
+                }
+            });
         } else {
-        // 如果不存在，创建新物品
-        const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
-        const material = new THREE.MeshPhongMaterial({
-            color: item.color || 0x3498db,
-            transparent: true,
-            opacity: 0.8
-        });
-        
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(
-            item.x + item.width / 2,
-            item.y + item.height / 2,
-            item.z + item.depth / 2
-        );
-        
-        // 存储物品信息
-        cube.userData = {
-            itemId: item.id,
-            originalColor: item.color || 0x3498db
-        };
-        
-        // 添加线框边缘使物品更容易识别
-        const edges = new THREE.EdgesGeometry(geometry);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-        const wireframe = new THREE.LineSegments(edges, lineMaterial);
-        cube.add(wireframe);
-        
-        sceneRef.current.add(cube);
-        
-        // 将其他物品设置为半透明
-        sceneRef.current.children.forEach(child => {
-            if (child.material && 
-                child.material.type === 'MeshPhongMaterial' && 
-                child.userData && 
-                child.userData.itemId !== item.id) {
-            child.material.opacity = 0.3;
-            }
-        });
+            // If doesn't exist, create new item
+            const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
+            const material = new THREE.MeshPhongMaterial({
+                color: item.color || 0x3498db,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(
+                item.x + item.width / 2,
+                item.y + item.height / 2,
+                item.z + item.depth / 2
+            );
+            
+            // Store item info
+            cube.userData = {
+                itemId: item.id,
+                originalColor: item.color || 0x3498db
+            };
+            
+            // Add wireframe edges for better visibility
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+            const wireframe = new THREE.LineSegments(edges, lineMaterial);
+            cube.add(wireframe);
+            
+            sceneRef.current.add(cube);
+            
+            // Make other items semi-transparent
+            sceneRef.current.children.forEach(child => {
+                if (child.material && 
+                    child.material.type === 'MeshPhongMaterial' && 
+                    child.userData && 
+                    child.userData.itemId !== item.id) {
+                    child.material.opacity = 0.3;
+                }
+            });
         }
     }, []);
 
-    // 初始化Three.js场景 - 基于for.js修改
+    // Initialize Three.js scene when component mounts or space size changes
     useEffect(() => {
         if (!mountRef.current) return;
 
+        // Clear the scene if it exists
+        if (sceneRef.current) {
+            while(sceneRef.current.children.length > 0) { 
+                sceneRef.current.remove(sceneRef.current.children[0]); 
+            }
+        }
+
         const mountNode = mountRef.current;
 
-        // 创建场景
+        // Create scene
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f0f0);
         sceneRef.current = scene;
 
-        // 创建模型组 - 从for.js复制
+        // Create model group
         const modelGroup = new THREE.Group();
         scene.add(modelGroup);
         scene.modelGroup = modelGroup;
 
-        // 创建相机
+        // Create camera
         const camera = new THREE.PerspectiveCamera(
-        75, 
-        mountNode.clientWidth / mountNode.clientHeight, 
-        0.1, 
-        1000
+            75, 
+            mountNode.clientWidth / mountNode.clientHeight, 
+            0.1, 
+            1000
         );
         camera.position.set(15, 10, 15);
         camera.lookAt(0, 0, 0);
         cameraRef.current = camera;
 
-        // 创建渲染器
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(mountNode.clientWidth, mountNode.clientHeight);
-        mountNode.appendChild(renderer.domElement);
-        rendererRef.current = renderer;
+        // Create renderer if it doesn't exist yet
+        if (!rendererRef.current) {
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(mountNode.clientWidth, mountNode.clientHeight);
+            mountNode.appendChild(renderer.domElement);
+            rendererRef.current = renderer;
+        }
 
-        // 添加坐标轴和网格
+        // Add axes and grid
         const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
         createThickAxis(scene, spaceSize, false);
         addAxisLabels(scene, axisLength);
 
-        // 创建光源组 - 从for.js复制
+        // Create light group
         const lightGroup = new THREE.Group();
         scene.add(lightGroup);
         scene.lightGroup = lightGroup;
 
-        // 添加定向光源 - 从for.js复制
+        // Add directional light
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(1, 1, 1);
         lightGroup.add(light);
 
-        // 添加环境光 - 从for.js复制
+        // Add ambient light
         lightGroup.add(new THREE.AmbientLight(0x404040));
 
-        // 添加事件监听器
+        // Add event listeners
         window.addEventListener('resize', handleResize);
-        renderer.domElement.addEventListener('mousedown', handleMouseDown);
-        renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
+        rendererRef.current.domElement.addEventListener('mousedown', handleMouseDown);
+        rendererRef.current.domElement.addEventListener('wheel', handleWheel, { passive: false });
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('mousemove', handleMouseMove);
 
-        // 动画循环
+        // Animation loop
         const animate = () => {
-        frameIdRef.current = requestAnimationFrame(animate);
-        renderer.render(scene, camera);
+            frameIdRef.current = requestAnimationFrame(animate);
+            rendererRef.current.render(scene, camera);
         };
         animate();
 
-        // 清理函数
+        // Cleanup
         return () => {
-        if (frameIdRef.current) {
-            cancelAnimationFrame(frameIdRef.current);
-        }
-        
-        window.removeEventListener('resize', handleResize);
-        renderer.domElement.removeEventListener('mousedown', handleMouseDown);
-        renderer.domElement.removeEventListener('wheel', handleWheel);
-        window.removeEventListener('mouseup', handleMouseUp);
-        window.removeEventListener('mousemove', handleMouseMove);
-        
-        if (mountNode && renderer.domElement) {
-            mountNode.removeChild(renderer.domElement);
-        }
-        
-        if (sceneRef.current) {
-            sceneRef.current.clear();
-        }
-        
-        if (rendererRef.current) {
-            rendererRef.current.dispose();
-        }
+            if (frameIdRef.current) {
+                cancelAnimationFrame(frameIdRef.current);
+            }
+            
+            window.removeEventListener('resize', handleResize);
+            rendererRef.current.domElement.removeEventListener('mousedown', handleMouseDown);
+            rendererRef.current.domElement.removeEventListener('wheel', handleWheel);
+            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('mousemove', handleMouseMove);
         };
     }, [
         spaceSize, 
@@ -519,268 +564,415 @@ const WorkerConsole = () => {
         handleResize
     ]);
 
-    // 处理点击Next Item按钮
+    // Handle Next Item button click
     const handleNextItem = () => {
         const nextIndex = currentItemIndex + 1;
         if (nextIndex < itemList.length) {
-        setCurrentItemIndex(nextIndex);
-        addOrHighlightItem(itemList[nextIndex]);
+            setCurrentItemIndex(nextIndex);
+            addOrHighlightItem(itemList[nextIndex]);
         }
     };
 
-    // 处理点击Previous Item按钮
+    // Handle Previous Item button click
     const handlePreviousItem = () => {
         const prevIndex = currentItemIndex - 1;
         if (prevIndex >= 0) {
-        setCurrentItemIndex(prevIndex);
-        addOrHighlightItem(itemList[prevIndex]);
+            setCurrentItemIndex(prevIndex);
+            addOrHighlightItem(itemList[prevIndex]);
         }
     };
 
-    // 处理点击列表中的物品
+    // Handle item selection from list
     const handleSelectItem = (item, index) => {
         setCurrentItemIndex(index);
         addOrHighlightItem(item);
     };
 
-    // 获取当前选中的物品
+    // Handle refresh button click
+    const handleRefresh = () => {
+        if (currentUser && currentUser.id) {
+            fetchWorkerTasks(currentUser.id);
+        }
+    };
+
+    // Format the date for display
+    const formatDate = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    // Get the current selected item
     const currentItem = currentItemIndex >= 0 && currentItemIndex < itemList.length 
         ? itemList[currentItemIndex] 
         : null;
 
     return (
-        // 使用具有相对位置和固定高度的容器，不允许溢出
         <Box sx={{ 
-        p: 0, 
-        bgcolor: '#f5f5f5', 
-        height: '100vh', 
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
+            p: 0, 
+            bgcolor: '#f5f5f5', 
+            height: '100vh', 
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
         }}>
-        {/* 第一行：3D视图和物品列表 - 固定高度 */}
-        <Box sx={{ 
-            height: 'calc(60vh - 16px)', 
-            p: 2,
-            pb: 1, 
-            flexShrink: 0 
-        }}>
-
-
-
-            
-            <Grid container spacing={2} sx={{ height: '100%' }}>
-            {/* 3D视图 */}
-            <Grid item xs={12} md={8} sx={{ height: '100%' }}>
-                <Paper 
-                elevation={3} 
-                sx={{ 
-                    p: 1, 
-                    height: '100%',
-                    bgcolor: '#fff',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}
-                >
-                <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
-                    3D View - The Configuration
-                </Typography>
-                <Box 
-                    ref={mountRef} 
-                    sx={{ 
-                    width: '100%', 
-                    flex: 1,
-                    borderRadius: 1,
-                    overflow: 'hidden' 
-                    }}
-                />
-                </Paper>
-            </Grid>
-            
-            
-            {/* 物品列表 */}
-            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Paper 
-                elevation={3} 
-                sx={{ 
-                    p: 1, 
-                    height: '100%',
-                    bgcolor: '#fff',
-                    borderRadius: 1,
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}
-                >
-                <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
-                    List of Next To-Be-Placed Items
-                </Typography>
-                <Box sx={{ overflow: 'auto', flex: 1 }}>
-                    <List>
-                    {itemList.map((item, index) => (
-                        <React.Fragment key={item.id}>
-                        <ListItem 
-                            button 
-                            selected={currentItemIndex === index}
-                            onClick={() => handleSelectItem(item, index)}
-                            sx={{
-                            bgcolor: currentItemIndex === index ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
-                            borderLeft: currentItemIndex === index ? '4px solid #1976d2' : 'none',
-                            pl: currentItemIndex === index ? 1 : 2
-                            }}
-                        >
-                            <ListItemText 
-                            primary={item.id} 
-                            secondary={
-                                <>
-                                <Typography component="span" variant="body2" color="text.primary">
-                                    {`${item.width} × ${item.height} × ${item.depth}`}
+            {/* Header with user info and task selection */}
+            <Box sx={{ p: 2, pb: 1 }}>
+                {currentUser && (
+                    <Paper elevation={2} sx={{ p: 1.5, mb: 2, borderRadius: 1 }}>
+                        <Grid container alignItems="center" spacing={2}>
+                            <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle1">
+                                    Worker: {currentUser.name} (ID: {currentUser.id})
                                 </Typography>
-                                {item.constraints?.length > 0 && (
-                                    <Typography component="span" variant="body2" color="text.secondary">
-                                    {` - ${item.constraints.join(', ')}`}
-                                    </Typography>
-                                )}
-                                </>
-                            } 
-                            />
-                            <Tooltip title="Preview this item in 3D view" placement="left">
-                                <IconButton 
-                                size="small" 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectItem(item, index);
-                                }}
-                                aria-label="Preview item"
+                            </Grid>
+                            <Grid item xs={12} md={6} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+                                <Button 
+                                    variant="outlined" 
+                                    size="small" 
+                                    startIcon={<RefreshIcon />}
+                                    onClick={handleRefresh}
+                                    disabled={loading}
                                 >
-                                    <ViewIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </ListItem>
-                        {index < itemList.length - 1 && <Divider />}
-                        </React.Fragment>
-                    ))}
-                    </List>
-                </Box>
-                </Paper>
-            </Grid>
-            </Grid>
-        </Box>
-
-        {/* 第二行：物品信息区域 - 固定高度，并增加底部边距 */}
-        <Box sx={{ 
-            height: 'calc(25vh - 16px)', 
-            p: 2,
-            pt: 1,
-            pb: 1,
-            flexShrink: 0,  // 防止压缩
-            mb: 2  // 添加底部外边距，与导航按钮分隔
-        }}>
-            <Paper 
-                elevation={3}
-                sx={{ 
-                    p: 2, 
-                    height: '100%',
-                    bgcolor: '#fff',
-                    borderRadius: 1,
-                    overflow: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}
-            >
-                <Typography variant="h6" gutterBottom sx={{ flexShrink: 0 }}>
-                    Information of the To-Be-Placed Item
-                </Typography>
-                
-                <Box sx={{ flex: 1, overflow: 'auto' }}>
-                    {currentItem ? (
-                    <Card variant="outlined" sx={{ height: 'auto' }}>
-                        <CardContent>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={4}>
-                            <Typography variant="subtitle2" color="primary">ID:</Typography>
-                            <Typography variant="body1" sx={{ mb: 1 }}>
-                                {currentItem.id}
-                            </Typography>
-                            </Grid>
-                            
-                            <Grid item xs={12} sm={4}>
-                            <Typography variant="subtitle2" color="primary">Dimensions (W×H×D):</Typography>
-                            <Typography variant="body1" sx={{ mb: 1 }}>
-                                {`${currentItem.width} × ${currentItem.height} × ${currentItem.depth}`}
-                            </Typography>
-                            </Grid>
-                            
-                            <Grid item xs={12} sm={4}>
-                            <Typography variant="subtitle2" color="primary">Constraints:</Typography>
-                            <Typography variant="body1" sx={{ mb: 1 }}>
-                                {currentItem.constraints?.length > 0 
-                                ? currentItem.constraints.join(', ') 
-                                : "None"}
-                            </Typography>
-                            </Grid>
-                            
-                            <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="primary">Placement Position:</Typography>
-                            <Typography variant="body1">
-                                {`X: ${currentItem.x}, Y: ${currentItem.y}, Z: ${currentItem.z}`}
-                            </Typography>
+                                    Refresh Tasks
+                                </Button>
                             </Grid>
                         </Grid>
-                        </CardContent>
-                    </Card>
+                    </Paper>
+                )}
+                
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+                
+                {/* Task selection section */}
+                <Paper elevation={3} sx={{ p: 2, mb: 2, borderRadius: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Assigned Tasks
+                    </Typography>
+                    
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                            <CircularProgress />
+                        </Box>
+                    ) : workerTasks.length === 0 ? (
+                        <Alert severity="info">
+                            No tasks have been assigned to you yet.
+                        </Alert>
                     ) : (
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        height: '100%',
-                        border: '1px dashed #ccc',
-                        borderRadius: 1,
-                        p: 2
-                    }}>
-                        <Typography variant="body1" color="text.secondary" align="center">
-                        Click "Next Item" or select an item from the list to see item information.
-                        </Typography>
-                    </Box>
+                        <Grid container spacing={2}>
+                            {workerTasks.map(task => (
+                                <Grid item xs={12} sm={6} md={4} key={task.id}>
+                                    <Card 
+                                        variant={selectedTask && selectedTask.id === task.id ? "outlined" : "elevation"}
+                                        sx={{ 
+                                            cursor: 'pointer',
+                                            border: selectedTask && selectedTask.id === task.id ? '2px solid #1976d2' : 'none',
+                                            backgroundColor: selectedTask && selectedTask.id === task.id ? '#f0f7ff' : '#fff'
+                                        }}
+                                        onClick={() => handleSelectTask(task)}
+                                    >
+                                        <CardContent>
+                                            <Typography variant="h6" gutterBottom>
+                                                Task #{task.id}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Created by: {task.creator.name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Date: {formatDate(task.created_at)}
+                                            </Typography>
+                                            <Typography variant="body2" mt={1}>
+                                                Items: {task.items.length}
+                                            </Typography>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
                     )}
-                </Box>
-            </Paper>
-        </Box>
+                </Paper>
+            </Box>
 
-        {/* 导航按钮 - 底部固定高度的区域 */}
-        <Box sx={{ 
-            p: 2, 
-            pt: 1, 
-            height: 'calc(15vh - 40px)',  // 固定高度
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-        }}>
-            <Stack direction="row" spacing={4} justifyContent="center">
-                <Button
-                    variant="outlined"
-                    startIcon={<PreviousIcon />}
-                    onClick={handlePreviousItem}
-                    disabled={currentItemIndex <= 0}
-                    sx={{ width: 160 }}
-                >
-                    Previous Item
-                </Button>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    endIcon={<NextIcon />}
-                    onClick={handleNextItem}
-                    disabled={currentItemIndex >= itemList.length - 1}
-                    sx={{ width: 160 }}
-                >
-                    Next Item
-                </Button>
-            </Stack>
-        </Box>
+            {/* Main content area */}
+            {selectedTask ? (
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Task details section */}
+                    <Box sx={{ px: 2, pb: 1 }}>
+                        <Paper elevation={3} sx={{ p: 2, borderRadius: 1 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Task #{selectedTask.id} Details
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="subtitle2" color="primary">Creator:</Typography>
+                                    <Typography variant="body1">
+                                        {selectedTask.creator.name} (ID: {selectedTask.creator.id})
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="subtitle2" color="primary">Space Size:</Typography>
+                                    <Typography variant="body1">
+                                        {`${selectedTask.space_info.x} × ${selectedTask.space_info.y} × ${selectedTask.space_info.z}`}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="subtitle2" color="primary">Created:</Typography>
+                                    <Typography variant="body1">
+                                        {formatDate(selectedTask.created_at)}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Box>
+                
+                    {/* 3D View and Item List */}
+                    <Box sx={{ 
+                        flex: 1,
+                        px: 2,
+                        pb: 1,
+                        display: 'flex',
+                        overflow: 'hidden'
+                    }}>
+                        <Grid container spacing={2} sx={{ height: '100%' }}>
+                            {/* 3D View */}
+                            <Grid item xs={12} md={8} sx={{ height: '100%' }}>
+                                <Paper 
+                                    elevation={3} 
+                                    sx={{ 
+                                        p: 1, 
+                                        height: '100%',
+                                        bgcolor: '#fff',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}
+                                >
+                                    <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
+                                        3D View - Item Configuration
+                                    </Typography>
+                                    <Box 
+                                        ref={mountRef} 
+                                        sx={{ 
+                                            width: '100%', 
+                                            flex: 1,
+                                            borderRadius: 1,
+                                            overflow: 'hidden' 
+                                        }}
+                                    />
+                                </Paper>
+                            </Grid>
+                            
+                            {/* Item List */}
+                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                                <Paper 
+                                    elevation={3} 
+                                    sx={{ 
+                                        p: 1, 
+                                        height: '100%',
+                                        bgcolor: '#fff',
+                                        borderRadius: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}
+                                >
+                                    <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
+                                        List of Items ({itemList.length})
+                                    </Typography>
+                                    <Box sx={{ overflow: 'auto', flex: 1 }}>
+                                        <List>
+                                            {itemList.length === 0 ? (
+                                                <ListItem>
+                                                    <ListItemText primary="No items in this task" />
+                                                </ListItem>
+                                            ) : (
+                                                itemList.map((item, index) => (
+                                                    <React.Fragment key={item.id}>
+                                                        <ListItem 
+                                                            button 
+                                                            selected={currentItemIndex === index}
+                                                            onClick={() => handleSelectItem(item, index)}
+                                                            sx={{
+                                                                bgcolor: currentItemIndex === index ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                                                                borderLeft: currentItemIndex === index ? '4px solid #1976d2' : 'none',
+                                                                pl: currentItemIndex === index ? 1 : 2
+                                                            }}
+                                                        >
+                                                            <ListItemText 
+                                                                primary={`${item.name} (${item.id})`}
+                                                                secondary={
+                                                                    <>
+                                                                        <Typography component="span" variant="body2" color="text.primary">
+                                                                            {`${item.width} × ${item.height} × ${item.depth}`}
+                                                                        </Typography>
+                                                                        {item.constraints?.length > 0 && (
+                                                                            <Typography component="span" variant="body2" color="text.secondary">
+                                                                                {` - ${item.constraints.join(', ')}`}
+                                                                            </Typography>
+                                                                        )}
+                                                                    </>
+                                                                } 
+                                                            />
+                                                            <Tooltip title="View this item in 3D" placement="left">
+                                                                <IconButton 
+                                                                    size="small" 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSelectItem(item, index);
+                                                                    }}
+                                                                    aria-label="View item"
+                                                                >
+                                                                    <ViewIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        </ListItem>
+                                                        {index < itemList.length - 1 && <Divider />}
+                                                    </React.Fragment>
+                                                ))
+                                            )}
+                                        </List>
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                        </Grid>
+                    </Box>
+
+                    {/* Item Details Section */}
+                    <Box sx={{ p: 2, pt: 1 }}>
+                        <Paper 
+                            elevation={3}
+                            sx={{ 
+                                p: 2, 
+                                bgcolor: '#fff',
+                                borderRadius: 1,
+                                overflow: 'auto'
+                            }}
+                        >
+                            <Typography variant="h6" gutterBottom>
+                                Item Information
+                            </Typography>
+                            
+                            {currentItem ? (
+                                <Card variant="outlined">
+                                    <CardContent>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12} sm={3}>
+                                                <Typography variant="subtitle2" color="primary">ID:</Typography>
+                                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                                    {currentItem.id}
+                                                </Typography>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12} sm={3}>
+                                                <Typography variant="subtitle2" color="primary">Name:</Typography>
+                                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                                    {currentItem.name}
+                                                </Typography>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12} sm={3}>
+                                                <Typography variant="subtitle2" color="primary">Dimensions (W×H×D):</Typography>
+                                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                                    {`${currentItem.width} × ${currentItem.height} × ${currentItem.depth}`}
+                                                </Typography>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12} sm={3}>
+                                                <Typography variant="subtitle2" color="primary">Constraints:</Typography>
+                                                <Typography variant="body1" sx={{ mb: 1 }}>
+                                                    {currentItem.constraints?.length > 0 
+                                                    ? currentItem.constraints.join(', ') 
+                                                    : "None"}
+                                                </Typography>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12}>
+                                                <Typography variant="subtitle2" color="primary">Placement Position:</Typography>
+                                                <Typography variant="body1">
+                                                    {`X: ${currentItem.x}, Y: ${currentItem.y}, Z: ${currentItem.z}`}
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    border: '1px dashed #ccc',
+                                    borderRadius: 1,
+                                    p: 2
+                                }}>
+                                    <Typography variant="body1" color="text.secondary" align="center">
+                                        Select an item from the list above to see its details.
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Paper>
+                    </Box>
+
+                    {/* Navigation Buttons */}
+                    <Box sx={{ 
+                        p: 2, 
+                        pt: 1, 
+                        pb: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <Stack direction="row" spacing={4} justifyContent="center">
+                            <Button
+                                variant="outlined"
+                                startIcon={<PreviousIcon />}
+                                onClick={handlePreviousItem}
+                                disabled={currentItemIndex <= 0 || itemList.length === 0}
+                                sx={{ width: 160 }}
+                            >
+                                Previous Item
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                endIcon={<NextIcon />}
+                                onClick={handleNextItem}
+                                disabled={currentItemIndex >= itemList.length - 1 || itemList.length === 0}
+                                sx={{ width: 160 }}
+                            >
+                                Next Item
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Box>
+            ) : (
+                <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center'
+                }}>
+                    <Paper elevation={3} sx={{ p: 4, maxWidth: 500, textAlign: 'center' }}>
+                        <Typography variant="h5" gutterBottom>
+                            No Task Selected
+                        </Typography>
+                        <Typography variant="body1" paragraph>
+                            Please select a task from the list above to view its details and 3D visualization.
+                        </Typography>
+                        {workerTasks.length === 0 && !loading && (
+                            <Alert severity="info" sx={{ mt: 2 }}>
+                                No tasks have been assigned to you yet.
+                            </Alert>
+                        )}
+                    </Paper>
+                </Box>
+            )}
         </Box>
     );
 };
