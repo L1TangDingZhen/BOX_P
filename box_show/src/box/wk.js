@@ -12,6 +12,8 @@ import {
     Card,
     CardContent,
     IconButton,
+    Stack,
+    Tooltip,
 } from '@mui/material';
 import {
     ArrowForward as NextIcon,
@@ -41,7 +43,7 @@ const WorkerConsole = () => {
     // --- Mock Data ---
     useEffect(() => {
         // 创建空的物品列表 - 初始状态无预置模型
-        // 
+        // 仅测试显示功能用，后续删除
         const mockItems = [
         { 
             id: 'item0001', 
@@ -547,7 +549,7 @@ const WorkerConsole = () => {
         : null;
 
     return (
-        // Usar contenedor con posición relativa y altura fija sin desbordamiento
+        // 使用具有相对位置和固定高度的容器，不允许溢出
         <Box sx={{ 
         p: 0, 
         bgcolor: '#f5f5f5', 
@@ -557,15 +559,19 @@ const WorkerConsole = () => {
         display: 'flex',
         flexDirection: 'column'
         }}>
-        {/* Primera fila: Vista 3D y lista de items - altura fija */}
+        {/* 第一行：3D视图和物品列表 - 固定高度 */}
         <Box sx={{ 
             height: 'calc(60vh - 16px)', 
             p: 2,
             pb: 1, 
             flexShrink: 0 
         }}>
+
+
+
+            
             <Grid container spacing={2} sx={{ height: '100%' }}>
-            {/* Vista 3D */}
+            {/* 3D视图 */}
             <Grid item xs={12} md={8} sx={{ height: '100%' }}>
                 <Paper 
                 elevation={3} 
@@ -594,7 +600,8 @@ const WorkerConsole = () => {
                 </Paper>
             </Grid>
             
-            {/* Lista de items */}
+            
+            {/* 物品列表 */}
             <Grid item xs={12} md={4} sx={{ height: '100%' }}>
                 <Paper 
                 elevation={3} 
@@ -639,15 +646,18 @@ const WorkerConsole = () => {
                                 </>
                             } 
                             />
-                            <IconButton 
-                            size="small" 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectItem(item, index);
-                            }}
-                            >
-                            <ViewIcon fontSize="small" />
-                            </IconButton>
+                            <Tooltip title="Preview this item in 3D view" placement="left">
+                                <IconButton 
+                                size="small" 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectItem(item, index);
+                                }}
+                                aria-label="Preview item"
+                                >
+                                    <ViewIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
                         </ListItem>
                         {index < itemList.length - 1 && <Divider />}
                         </React.Fragment>
@@ -659,46 +669,16 @@ const WorkerConsole = () => {
             </Grid>
         </Box>
 
-        {/* Segunda fila: Botón de Next Item e información - altura fija */}
+        {/* 第二行：物品信息区域 - 固定高度，并增加底部边距 */}
         <Box sx={{ 
             height: 'calc(25vh - 16px)', 
             p: 2,
             pt: 1,
             pb: 1,
-            flexShrink: 0
+            flexShrink: 0,  // 防止压缩
+            mb: 2  // 添加底部外边距，与导航按钮分隔
         }}>
-            <Grid container spacing={2} sx={{ height: '100%' }}>
-            {/* Botón Next Item */}
-            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Paper 
-                elevation={3}
-                sx={{ 
-                    p: 2,
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: '#fff',
-                    borderRadius: 1
-                }}
-                >
-                <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<NextIcon />}
-                    onClick={handleNextItem}
-                    disabled={currentItemIndex >= itemList.length - 1}
-                    fullWidth
-                    sx={{ height: '50px' }}
-                >
-                    Next Item
-                </Button>
-                </Paper>
-            </Grid>
-            
-            {/* Información del ítem */}
-            <Grid item xs={12} md={8} sx={{ height: '100%' }}>
-                <Paper 
+            <Paper 
                 elevation={3}
                 sx={{ 
                     p: 2, 
@@ -709,7 +689,7 @@ const WorkerConsole = () => {
                     display: 'flex',
                     flexDirection: 'column'
                 }}
-                >
+            >
                 <Typography variant="h6" gutterBottom sx={{ flexShrink: 0 }}>
                     Information of the To-Be-Placed Item
                 </Typography>
@@ -767,48 +747,39 @@ const WorkerConsole = () => {
                     </Box>
                     )}
                 </Box>
-                </Paper>
-            </Grid>
-            </Grid>
+            </Paper>
         </Box>
 
-        {/* Tercera fila: Botón Previous Item - altura fija */}
+        {/* 导航按钮 - 底部固定高度的区域 */}
         <Box sx={{ 
-            height: 'calc(15vh - 16px)', 
-            p: 2,
-            pt: 1,
-            flexShrink: 0 
+            p: 2, 
+            pt: 1, 
+            height: 'calc(15vh - 40px)',  // 固定高度
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
         }}>
-            <Grid container spacing={2} sx={{ height: '100%' }}>
-            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-                <Paper 
-                elevation={3}
-                sx={{ 
-                    p: 2,
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: '#fff',
-                    borderRadius: 1
-                }}
-                >
+            <Stack direction="row" spacing={4} justifyContent="center">
                 <Button
                     variant="outlined"
                     startIcon={<PreviousIcon />}
                     onClick={handlePreviousItem}
                     disabled={currentItemIndex <= 0}
-                    fullWidth
-                    sx={{ height: '50px' }}
+                    sx={{ width: 160 }}
                 >
                     Previous Item
                 </Button>
-                </Paper>
-            </Grid>
-            
-            {/* Espacio vacío a la derecha para alineación */}
-            <Grid item xs={12} md={8}></Grid>
-            </Grid>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    endIcon={<NextIcon />}
+                    onClick={handleNextItem}
+                    disabled={currentItemIndex >= itemList.length - 1}
+                    sx={{ width: 160 }}
+                >
+                    Next Item
+                </Button>
+            </Stack>
         </Box>
         </Box>
     );

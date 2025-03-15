@@ -88,6 +88,7 @@ const IssuesAndTodos = () => {
           <li style={styles.strikethrough}>input records 可以删除修改的问题</li>
           <li style={styles.strikethrough}>在free view的模式下，摄像头缩小后只能看到大概40左右的刻度，无法缩小到可以看到整个坐标系</li>
           <li style={styles.strikethrough}>页面缩略图在全屏后大小有变化</li>
+          <li>top view of currnet layer的问题怎么显示</li>
 
         </ul>
       </div>
