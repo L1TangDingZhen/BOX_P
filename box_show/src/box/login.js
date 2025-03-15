@@ -20,13 +20,13 @@ const Login = () => {
         }));
     };
 
-    // API登录逻辑
+    // API login logic
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // 基本验证
+        // Basic validation
         if (!credentials.id || !credentials.password) {
-            setError('请输入用户ID和密码');
+            setError('Please enter user ID and password');
             return;
         }
         
@@ -34,16 +34,16 @@ const Login = () => {
             setLoading(true);
             setError('');
             
-            // 确保ID是数字
+            // Ensure ID is a number
             const numericId = parseInt(credentials.id, 10);
             
             if (isNaN(numericId)) {
-                setError('用户ID必须是数字');
+                setError('User ID must be a number');
                 setLoading(false);
                 return;
             }
             
-            // 发送登录请求到API
+            // Send login request to API
             const response = await fetch('http://127.0.0.1:8000/api/login/', {
                 method: 'POST',
                 headers: {
@@ -58,29 +58,29 @@ const Login = () => {
             const data = await response.json();
             
             if (!response.ok) {
-                throw new Error(data.error || '登录失败');
+                throw new Error(data.error || 'Login failed');
             }
             
-            // 登录成功
-            console.log('登录成功:', data);
+            // Login successful
+            console.log('Login successful:', data);
             
-            // 保存用户信息到本地存储
+            // Save user info to local storage
             localStorage.setItem('user', JSON.stringify({
                 id: data.id,
                 name: data.name,
                 is_manager: data.is_manager
             }));
             
-            // 根据用户角色导航到不同页面
+            // Navigate to different pages based on user role
             if (data.is_manager) {
-                navigate('/MG'); // 管理员页面
+                navigate('/MG'); // Manager page
             } else {
-                navigate('/WK'); // 工人页面
+                navigate('/WK'); // Worker page
             }
             
         } catch (err) {
-            console.error('登录错误:', err);
-            setError(err.message || '登录失败，请检查您的凭据');
+            console.error('Login error:', err);
+            setError(err.message || 'Login failed, please check your credentials');
         } finally {
             setLoading(false);
         }
@@ -114,7 +114,7 @@ const Login = () => {
                 </Typography>
                 
                 <Typography variant="body1" color="text.secondary" mb={3}>
-                    请登录以继续
+                    Please log in to continue
                 </Typography>
 
                 {error && (
@@ -130,7 +130,7 @@ const Login = () => {
                             value={credentials.id}
                             onChange={handleChange}
                             variant="outlined"
-                            label="用户ID"
+                            label="User ID"
                             type="number"
                             fullWidth
                             InputProps={{
@@ -147,7 +147,7 @@ const Login = () => {
                             value={credentials.password}
                             onChange={handleChange}
                             variant="outlined"
-                            label="密码"
+                            label="Password"
                             type="password"
                             fullWidth
                             InputProps={{
@@ -172,12 +172,12 @@ const Login = () => {
                             fontSize: '1rem',
                         }}
                     >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : "登录"}
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
                     </Button>
                     
                     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                         <Link href="/register" underline="hover" color="primary" variant="body2">
-                            注册新账号
+                            Register new account
                         </Link>
                     </Box>
                 </Box>
