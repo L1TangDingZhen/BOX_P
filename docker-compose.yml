@@ -4,10 +4,8 @@ services:
   # 后端服务
   backend:
     build:
-      context: ./box_back/box_back
-      dockerfile: Dockerfile
-    volumes:
-      - ./box_back/box_back:/app
+      context: ./box_back
+      dockerfile: ./box_back/Dockerfile
     environment:
       - DEBUG=False
       - ALLOWED_HOSTS=localhost,127.0.0.1,backend
@@ -20,16 +18,10 @@ services:
     build:
       context: ./box_show
       dockerfile: Dockerfile
-    volumes:
-      - ./box_show:/app
-      - /app/node_modules
-    environment:
-      - REACT_APP_API_URL=http://localhost/api
     networks:
       - app-network
     depends_on:
       - backend
-    command: npm run build
 
   # Nginx服务 - 作为反向代理和静态文件服务器
   nginx:
