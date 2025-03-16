@@ -1,27 +1,51 @@
+version: '3'
+
 services:
+  # 后端服务
   backend:
-    build: 
+    build:
       context: ./box_back/box_back
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - DEBUG=1
-      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
     volumes:
       - ./box_back/box_back:/app
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # 前端服务
   frontend:
     build:
       context: ./box_show
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    volumes:
+      - ./box_show:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost/api
+    networks:
+      - app-network
     depends_on:
       - backend
-    environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-    stdin_open: true
-    tty: true
+    command: npm run build
+
+  # Nginx服务 - 作为反向代理和静态文件服务器
+  nginx:
+    image: nginx:1.23-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./box_show/build:/usr/share/nginx/html
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

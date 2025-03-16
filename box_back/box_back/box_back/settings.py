@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-xu+de!4r0eb^o9chcp%-bn@ke-r0935n6-6um_qt%&y27p32oi'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
 
 
 # Application definition
@@ -40,14 +42,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'box_back.app',
     'drf_yasg',
+    'corsheaders',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # 开发环境使用，生产环境应设置特定域名
+CORS_ALLOW_ALL_ORIGINS = False  # 开发环境使用，生产环境应设置特定域名
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # 添加whitenoise
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',   # 添加这行
+    'corsheaders.middleware.CorsMiddleware',   # 确保这行在CommonMiddleware之前
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

@@ -1,19 +1,20 @@
-FROM node:18
+FROM node:18 as build
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN rm -rf node_modules package-lock.json
 RUN npm cache clean --force
 RUN npm install
 
-RUN npm install -g react-scripts
-
 COPY . .
 
-RUN npm install
+# 构建生产环境静态文件
+RUN npm run build
 
-EXPOSE 3000
+# 生产环境容器
+FROM nginx:1.23-alpine
+COPY --from=build /app/build /usr/share/nginx/html
+EXPOSE 80
 
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]
