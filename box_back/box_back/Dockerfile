@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
-RUN pip install gunicorn corsheaders
+RUN pip install gunicorn django-cors-headers
 
 COPY . .
 
