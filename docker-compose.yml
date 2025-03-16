@@ -4,11 +4,11 @@ services:
   # 后端服务
   backend:
     build:
-      context: ./box_back
-      dockerfile: ./box_back/Dockerfile
+      context: ./box_back/box_back
+      dockerfile: Dockerfile
     environment:
       - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,172.31.3.252
     networks:
       - app-network
     restart: unless-stopped
