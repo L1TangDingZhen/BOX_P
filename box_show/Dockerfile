@@ -11,8 +11,9 @@ ENV NODE_ENV=production
 # 只复制package文件
 COPY package*.json ./
 
-# 安装依赖 - 只安装生产依赖项以减少内存使用
+# 安装依赖 - 添加缺失的babel插件
 RUN npm install --only=production
+RUN npm install --save-dev @babel/plugin-proposal-private-property-in-object
 
 # 复制源代码
 COPY . .
