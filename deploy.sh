@@ -1,145 +1,198 @@
 #!/bin/bash
-# EC2部署脚本
-
-# 终止脚本，如果任何命令失败
 set -e
 
-echo "开始部署流程..."
-
-# 1. 安装必要的软件
-echo "安装Docker和Docker Compose..."
-sudo yum update -y
-sudo yum install -y docker git
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo usermod -aG docker $USER
-
-# 安装Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.15.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-# 2. 创建项目目录结构
-echo "创建项目目录结构..."
-mkdir -p ~/box-app/nginx
-
-# 3. 复制配置文件
-echo "配置Nginx..."
-cat > ~/box-app/nginx/nginx.conf << 'EOL'
-worker_processes 1;
-
-events {
-    worker_connections 1024;
+# 显示彩色输出的函数
+function echo_color {
+  local color=$1
+  local message=$2
+  case $color in
+    "green") echo -e "\033[0;32m$message\033[0m" ;;
+    "red") echo -e "\033[0;31m$message\033[0m" ;;
+    "yellow") echo -e "\033[0;33m$message\033[0m" ;;
+    *) echo "$message" ;;
+  esac
 }
 
-http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
-    sendfile        on;
-    keepalive_timeout  65;
+# 如果目标目录不存在，则创建
+mkdir -p box_show/build
 
-    # 启用gzip压缩
-    gzip on;
-    gzip_disable "msie6";
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-    # 前端服务
-    server {
-        listen 80;
-        server_name localhost;
-        
-        # 前端静态文件
-        location / {
-            root   /usr/share/nginx/html;
-            index  index.html index.htm;
-            try_files $uri $uri/ /index.html; # React路由支持
-        }
-
-        # 后端API代理
-        location /api/ {
-            proxy_pass http://backend:8000/api/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-        
-        # Swagger文档
-        location /swagger/ {
-            proxy_pass http://backend:8000/swagger/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
-        
-        # 静态错误页面
-        error_page   500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   /usr/share/nginx/html;
-        }
-    }
-}
+# 步骤1: 确保前端文件存在并正确部署
+echo_color "yellow" "===== 步骤1: 处理前端文件 ====="
+if [ -f "build.tar.gz" ]; then
+  echo_color "green" "发现前端构建压缩包，正在解压..."
+  # 删除旧文件
+  rm -rf box_show/build/*
+  # 解压前端文件
+  tar -xzf build.tar.gz -C box_show/build/ || {
+    echo_color "yellow" "标准解压失败，尝试使用sudo..."
+    sudo tar -xzf build.tar.gz -C box_show/build/
+    sudo chown -R $(whoami):$(whoami) box_show/build/
+  }
+  
+  # 设置适当的权限
+  chmod -R 755 box_show/build/
+  echo_color "green" "前端文件解压完成！"
+elif [ -f "frontend-image.tar" ]; then
+  echo_color "yellow" "未发现前端构建压缩包，尝试从Docker镜像中提取..."
+  
+  # 从Docker镜像中提取前端文件
+  echo_color "yellow" "正在从前端Docker镜像中提取文件..."
+  CONTAINER_ID=$(docker create box_p-frontend)
+  
+  # 清空目标目录
+  rm -rf box_show/build/*
+  
+  # 从容器中复制文件 (尝试几个可能的路径)
+  docker cp $CONTAINER_ID:/app/build/. box_show/build/ || \
+  docker cp $CONTAINER_ID:/usr/src/app/build/. box_show/build/ || \
+  docker cp $CONTAINER_ID:/home/node/app/build/. box_show/build/ || {
+    echo_color "red" "无法从容器中找到前端构建文件！"
+    echo_color "yellow" "创建一个简单的index.html文件作为临时解决方案..."
+    cat > box_show/build/index.html << 'EOL'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Box Packing Application</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .warning { color: #c00; background: #fff0f0; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Box Packing Application</h1>
+    <div class="warning">
+        <h2>前端文件未正确部署</h2>
+        <p>这是一个临时页面。请确保前端构建文件已正确部署到服务器。</p>
+        <p>API服务器可能正常运行，但前端文件缺失。</p>
+    </div>
+</body>
+</html>
 EOL
-
-# 4. 创建docker-compose.yml
-echo "配置Docker Compose..."
-cat > ~/box-app/docker-compose.yml << 'EOL'
-version: '3'
-
-services:
-  # 后端服务
-  backend:
-    build:
-      context: ./box_back/box_back
-      dockerfile: Dockerfile
-    environment:
-      - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,your-ec2-public-ip
-    networks:
-      - app-network
-    restart: unless-stopped
-
-  # 前端服务
-  frontend:
-    build:
-      context: ./box_show
-      dockerfile: Dockerfile
-    environment:
-      - REACT_APP_API_URL=http://localhost/api
-    networks:
-      - app-network
-    depends_on:
-      - backend
-
-  # Nginx服务 - 作为反向代理和静态文件服务器
-  nginx:
-    image: nginx:1.23-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./box_show/build:/usr/share/nginx/html
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - app-network
-    restart: unless-stopped
-
-networks:
-  app-network:
-    driver: bridge
+  }
+  
+  # 移除临时容器
+  docker rm $CONTAINER_ID
+  
+  # 设置权限
+  chmod -R 755 box_show/build/
+  echo_color "green" "前端文件处理完成！"
+else
+  echo_color "red" "警告：未找到前端构建文件或Docker镜像！"
+  echo_color "yellow" "创建一个简单的index.html文件作为临时解决方案..."
+  
+  # 创建一个简单的HTML文件以验证Nginx配置
+  mkdir -p box_show/build
+  cat > box_show/build/index.html << 'EOL'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Box Packing Application</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .warning { color: #c00; background: #fff0f0; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Box Packing Application</h1>
+    <div class="warning">
+        <h2>前端文件未找到</h2>
+        <p>这是一个临时页面。请上传前端构建文件到服务器。</p>
+        <p>您可以在本地运行 <code>npm run build</code> 然后将生成的文件上传到服务器。</p>
+    </div>
+</body>
+</html>
 EOL
+  chmod 755 box_show/build/index.html
+  echo_color "yellow" "临时index.html文件已创建"
+fi
 
-# 5. 部署应用
-echo "开始构建和部署应用..."
-cd ~/box-app
+# 检查前端文件是否存在
+if [ -f "box_show/build/index.html" ]; then
+  echo_color "green" "前端文件检查通过：index.html 已找到"
+else
+  echo_color "red" "错误：box_show/build/index.html 不存在，部署可能会失败！"
+fi
 
-# 替换docker-compose.yml中的EC2公共IP
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-sed -i "s/your-ec2-public-ip/$PUBLIC_IP/g" docker-compose.yml
+# 步骤2: 加载Docker镜像
+echo_color "yellow" "===== 步骤2: 加载Docker镜像 ====="
+if [ -f "backend-image.tar" ]; then
+  echo_color "green" "正在加载后端Docker镜像..."
+  docker load -i backend-image.tar
+fi
 
-# 构建并启动服务
-sudo docker-compose up -d
+if [ -f "frontend-image.tar" ] && [ ! -f "box_show/build/index.html" ]; then
+  echo_color "green" "正在加载前端Docker镜像..."
+  docker load -i frontend-image.tar
+fi
 
-echo "部署完成！应用已启动。"
-echo "通过以下地址访问应用: http://$PUBLIC_IP"
+# 步骤3: 检查并修复Docker Compose配置
+echo_color "yellow" "===== 步骤3: 检查Docker Compose配置 ====="
+if [ -f "docker-compose.yml" ]; then
+  # 备份原始文件
+  cp docker-compose.yml docker-compose.yml.bak
+  
+  # 修改Docker Compose配置，确保不引用未定义的卷
+  echo_color "green" "更新Docker Compose配置..."
+  sed -i 's/frontend-build:/\/usr\/share\/nginx\/html/g' docker-compose.yml || echo_color "yellow" "无需修改卷配置"
+  
+  # 检查是否包含VM_IP变量
+  if grep -q 'VM_IP' docker-compose.yml; then
+    echo_color "yellow" "检测到VM_IP变量，确保它有一个默认值..."
+    # 创建或更新.env文件
+    echo "VM_IP=$(hostname -I | awk '{print $1}')" > .env
+    echo_color "green" "已创建.env文件，设置VM_IP=$(hostname -I | awk '{print $1}')"
+  fi
+else
+  echo_color "red" "错误：未找到docker-compose.yml文件！"
+  exit 1
+fi
+
+# 步骤4: 启动Docker服务
+echo_color "yellow" "===== 步骤4: 重启Docker服务 ====="
+echo_color "green" "停止现有容器..."
+docker-compose down
+
+echo_color "green" "启动服务..."
+docker-compose up -d
+
+# 步骤5: 验证部署
+echo_color "yellow" "===== 步骤5: 验证部署 ====="
+echo_color "green" "等待服务启动..."
+sleep 5
+
+# 检查Nginx容器中的文件
+NGINX_CONTAINER=$(docker ps | grep nginx | awk '{print $1}')
+if [ ! -z "$NGINX_CONTAINER" ]; then
+  echo_color "green" "检查Nginx容器中的文件..."
+  docker exec $NGINX_CONTAINER ls -la /usr/share/nginx/html/
+  
+  if docker exec $NGINX_CONTAINER [ -f /usr/share/nginx/html/index.html ]; then
+    echo_color "green" "√ 成功: Nginx容器中存在index.html文件"
+  else
+    echo_color "red" "× 错误: Nginx容器中没有index.html文件！"
+  fi
+else
+  echo_color "red" "× 错误: 未找到Nginx容器！"
+fi
+
+# 检查容器状态
+if docker ps | grep -q "nginx"; then
+  echo_color "green" "√ 成功: Nginx容器正在运行"
+else
+  echo_color "red" "× 错误: Nginx容器未运行！"
+fi
+
+if docker ps | grep -q "backend"; then
+  echo_color "green" "√ 成功: 后端容器正在运行"
+else
+  echo_color "red" "× 错误: 后端容器未运行！"
+fi
+
+# 显示IP和访问信息
+IP_ADDRESS=$(hostname -I | awk '{print $1}')
+echo_color "green" "===== 部署完成 ====="
+echo_color "green" "应用已部署到 http://$IP_ADDRESS"
+echo_color "green" "API地址: http://$IP_ADDRESS/api/"
+echo_color "yellow" "如果遇到问题，请检查Docker日志:"
+echo "  docker logs \$(docker ps | grep nginx | awk '{print \$1}')"
+echo "  docker logs \$(docker ps | grep backend | awk '{print \$1}')"
