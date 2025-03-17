@@ -26,6 +26,8 @@ import {
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
+import { API_BASE_URL } from '../config/api';
+
 
 const WorkerConsole = () => {
     // --- Refs ---
@@ -97,7 +99,7 @@ const WorkerConsole = () => {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`http://127.0.0.1:8000/api/workers/${workerId}/tasks/`);
+            const response = await fetch(`${API_BASE_URL}/api/workers/${workerId}/tasks/`);
             
             if (!response.ok) {
                 throw new Error(`Failed to fetch tasks: ${response.statusText}`);

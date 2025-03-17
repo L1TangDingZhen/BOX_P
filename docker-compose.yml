@@ -3,12 +3,10 @@ version: '3'
 services:
   # 后端服务
   backend:
-    build:
-      context: ./box_back/box_back
-      dockerfile: Dockerfile
+    image: box_p-backend
     environment:
       - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,172.31.3.252
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,172.31.3.208,3.104.77.160
     networks:
       - app-network
     restart: unless-stopped
@@ -18,22 +16,28 @@ services:
     build:
       context: ./box_show
       dockerfile: Dockerfile
+    # 关键设置：限制内存使用
+    deploy:
+      resources:
+        limits:
+          memory: 5G
     networks:
       - app-network
     depends_on:
       - backend
 
-  # Nginx服务 - 作为反向代理和静态文件服务器
+  # Nginx服务
   nginx:
     image: nginx:1.23-alpine
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - frontend-build:/usr/share/nginx/html  # 共享前端文件
       - ./box_show/build:/usr/share/nginx/html
     depends_on:
-      - backend
       - frontend
+      - backend
     networks:
       - app-network
     restart: unless-stopped

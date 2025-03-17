@@ -29,6 +29,8 @@ import {
     PlayArrow as RunIcon,
     Clear as ClearIcon
 } from '@mui/icons-material';
+import { API_BASE_URL } from '../config/api';
+
 
 const ItemManagementPage = () => {
     // Get current logged in user
@@ -258,7 +260,7 @@ const ItemManagementPage = () => {
             const requestData = formatDataForApi(workerId);
             
             // Send to API
-            const response = await fetch('http://127.0.0.1:8000/api/tasks/create/', {
+            const response = await fetch(`${API_BASE_URL}/api/tasks/create/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
