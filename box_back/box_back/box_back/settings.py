@@ -45,7 +45,15 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = False  # 开发环境使用，生产环境应设置特定域名
+CORS_ALLOW_ALL_ORIGINS = False
+
+# 更新为包含特定来源
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # 开发服务器
+    "http://localhost:80",    # Docker中的Nginx
+    "http://127.0.0.1:80",    # 通过IP访问Docker中的Nginx
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

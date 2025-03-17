@@ -6,17 +6,14 @@ services:
     image: box_p-backend
     environment:
       - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,172.31.3.208,3.104.77.160
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,${VM_IP}
     networks:
       - app-network
     restart: unless-stopped
 
   # 前端服务
   frontend:
-    build:
-      context: ./box_show
-      dockerfile: Dockerfile
-    # 关键设置：限制内存使用
+    image: box_p-frontend  # 使用预构建镜像
     deploy:
       resources:
         limits:
