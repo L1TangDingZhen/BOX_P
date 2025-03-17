@@ -1,2 +1,4 @@
-// 始终使用相对路径，通过Nginx代理转发到后端
-export const API_BASE_URL = '';
+// For production deployment
+export const API_BASE_URL = '';  // Empty string for relative URLs
+// For local development
+// export const API_BASE_URL = 'http://localhost:8000';

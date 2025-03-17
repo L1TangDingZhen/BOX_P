@@ -99,8 +99,8 @@ const WorkerConsole = () => {
             setLoading(true);
             setError(null);
             
-            const response = await fetch('3.104.77.160/api/workers/${workerId}/tasks/');
-            
+            const response = await fetch(`${API_BASE_URL}/api/workers/${workerId}/tasks/`);
+                        
             if (!response.ok) {
                 throw new Error(`Failed to fetch tasks: ${response.statusText}`);
             }
