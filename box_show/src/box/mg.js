@@ -260,7 +260,7 @@ const ItemManagementPage = () => {
             const requestData = formatDataForApi(workerId);
             
             // Send to API
-            const response = await fetch(`${API_BASE_URL}/api/tasks/create/`, {
+            const response = await fetch('3.104.77.160/api/tasks/create/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

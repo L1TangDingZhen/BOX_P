@@ -45,7 +45,7 @@ const Login = () => {
             }
             
             // Send login request to API
-            const response = await fetch(`${API_BASE_URL}/api/login/`, {
+            const response = await fetch('3.104.77.160/api/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
