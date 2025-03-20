@@ -132,7 +132,7 @@ const Login = () => {
                             onChange={handleChange}
                             variant="outlined"
                             label="User ID"
-                            type="number"
+                            type="text"
                             fullWidth
                             InputProps={{
                                 startAdornment: (
@@ -177,7 +177,7 @@ const Login = () => {
                     </Button>
                     
                     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                        <Link href="/register" underline="hover" color="primary" variant="body2">
+                        <Link href="/REG" underline="hover" color="primary" variant="body2">
                             Register new account
                         </Link>
                     </Box>

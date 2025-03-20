@@ -11,7 +11,7 @@ import Login from './box/login';
 import Mg from './box/mg';
 import Wk from './box/wk';
 import reportWebVitals from './reportWebVitals';
-
+import Reg from './box/reg';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   // <React.StrictMode>
@@ -27,6 +27,7 @@ root.render(
         <Route path="/login" element={<Login />} />
         <Route path="/MG" element={<Mg />} />
         <Route path="/WK" element={<Wk />} />
+        <Route path="/REG" element={<Reg />} />
       </Routes>
     </Router>
   // </React.StrictMode>

@@ -38,6 +38,10 @@ const IssuesAndTodos = () => {
     window.location.href = "/WK";
   };
 
+  const goToReg = () => {
+    window.location.href = "/REG";
+  };
+
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>问题和代办列表</h1>
@@ -61,6 +65,9 @@ const IssuesAndTodos = () => {
         </button>
         <button style={styles.button} onClick={goToLogin}>
           登录
+        </button>
+        <button style={styles.button} onClick={goToReg}>
+          注册
         </button>
         <button style={styles.button} onClick={goToMG}>
           Maneger
