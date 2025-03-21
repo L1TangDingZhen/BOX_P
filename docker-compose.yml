@@ -6,14 +6,14 @@ services:
     image: box_p-backend
     environment:
       - DEBUG=False
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,${VM_IP}
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,aimls.uk,www.aimls.uk
     networks:
       - app-network
     restart: unless-stopped
 
   # 前端服务
   frontend:
-    image: box_p-frontend  # 使用预构建镜像
+    image: box_p-frontend
     deploy:
       resources:
         limits:
@@ -31,11 +31,9 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - frontend-build:/usr/share/nginx/html  # 共享前端文件
-      - /etc/ssl/cloudflare:/etc/ssl/cloudflare
+      - /etc/ssl/private:/etc/ssl/private:ro
       - ./box_show/build:/usr/share/nginx/html
       - /etc/letsencrypt:/etc/letsencrypt:ro  # 添加这一行
-
     depends_on:
       - frontend
       - backend
