@@ -31,11 +31,16 @@ import { API_BASE_URL } from '../config/api';
 
 const WorkerConsole = () => {
     // --- Refs ---
-    const mountRef = useRef(null);
-    const sceneRef = useRef(null);
-    const rendererRef = useRef(null);
-    const frameIdRef = useRef(null);
-    const cameraRef = useRef(null);
+    const mount3DRef = useRef(null);  // 3D视图的ref
+    const mountTopViewRef = useRef(null);  // 顶视图的ref
+    const scene3DRef = useRef(null);  // 3D视图场景
+    const sceneTopViewRef = useRef(null);  // 顶视图场景
+    const renderer3DRef = useRef(null);  // 3D视图渲染器
+    const rendererTopViewRef = useRef(null);  // 顶视图渲染器
+    const frameId3DRef = useRef(null);  // 3D视图动画帧
+    const frameIdTopViewRef = useRef(null);  // 顶视图动画帧
+    const camera3DRef = useRef(null);  // 3D视图相机
+    const cameraTopViewRef = useRef(null);  // 顶视图相机
     const isMouseDown = useRef(false);
     const mousePosition = useRef({ x: 0, y: 0 });
     const cameraRotation = useRef({ x: 0, y: 0 });
@@ -44,6 +49,7 @@ const WorkerConsole = () => {
     const [currentItemIndex, setCurrentItemIndex] = useState(-1);
     const [itemList, setItemList] = useState([]);
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
+    const [placedItems, setPlacedItems] = useState([]);  // 跟踪已放置的物品
     
     // Worker and tasks states
     const [currentUser, setCurrentUser] = useState(null);
@@ -61,7 +67,7 @@ const WorkerConsole = () => {
         return colors[id % colors.length];
     };
 
-    // Handle selection of a task - 将此函数移到fetchWorkerTasks前面
+    // Handle selection of a task
     const handleSelectTask = useCallback((task) => {
         setSelectedTask(task);
         
@@ -91,9 +97,10 @@ const WorkerConsole = () => {
         
         setItemList(formattedItems);
         setCurrentItemIndex(-1); // Reset the selected item
+        setPlacedItems([]); // 重置已放置物品列表
     }, []);
 
-    // Fetch worker tasks from API - 现在handleSelectTask已被定义
+    // Fetch worker tasks from API
     const fetchWorkerTasks = useCallback(async (workerId) => {
         try {
             setLoading(true);
@@ -118,7 +125,7 @@ const WorkerConsole = () => {
         } finally {
             setLoading(false);
         }
-    }, [handleSelectTask]);  // 依赖项包含handleSelectTask
+    }, [handleSelectTask]);
 
     // Load user from localStorage
     useEffect(() => {
@@ -143,26 +150,26 @@ const WorkerConsole = () => {
         }
     }, [currentUser, fetchWorkerTasks]);
 
-    // 创建网格辅助线 - 直接从for.js复制
+    // 创建网格辅助线
     const createGrids = useCallback((scene, spaceSize, visible = true) => {
         const gridGroup = new THREE.Group();
         gridGroup.visible = visible;
         scene.add(gridGroup);
         
         const gridMaterial = new THREE.LineBasicMaterial({
-        color: 0x000000, 
-        opacity: 0.2, 
-        transparent: true 
+            color: 0x000000, 
+            opacity: 0.2, 
+            transparent: true 
         });
         
         // XY平面网格
         const xyGeometry = new THREE.BufferGeometry();
         const xyVertices = [];
         for (let x = 0; x <= spaceSize.x; x++) {
-        xyVertices.push(x, 0, 0, x, spaceSize.y, 0);
+            xyVertices.push(x, 0, 0, x, spaceSize.y, 0);
         }
         for (let y = 0; y <= spaceSize.y; y++) {
-        xyVertices.push(0, y, 0, spaceSize.x, y, 0);
+            xyVertices.push(0, y, 0, spaceSize.x, y, 0);
         }
         xyGeometry.setAttribute('position', new THREE.Float32BufferAttribute(xyVertices, 3));
         gridGroup.add(new THREE.LineSegments(xyGeometry, gridMaterial));
@@ -171,10 +178,10 @@ const WorkerConsole = () => {
         const xzGeometry = new THREE.BufferGeometry();
         const xzVertices = [];
         for (let x = 0; x <= spaceSize.x; x++) {
-        xzVertices.push(x, 0, 0, x, 0, spaceSize.z);
+            xzVertices.push(x, 0, 0, x, 0, spaceSize.z);
         }
         for (let z = 0; z <= spaceSize.z; z++) {
-        xzVertices.push(0, 0, z, spaceSize.x, 0, z);
+            xzVertices.push(0, 0, z, spaceSize.x, 0, z);
         }
         xzGeometry.setAttribute('position', new THREE.Float32BufferAttribute(xzVertices, 3));
         gridGroup.add(new THREE.LineSegments(xzGeometry, gridMaterial));
@@ -183,10 +190,10 @@ const WorkerConsole = () => {
         const yzGeometry = new THREE.BufferGeometry();
         const yzVertices = [];
         for (let y = 0; y <= spaceSize.y; y++) {
-        yzVertices.push(0, y, 0, 0, y, spaceSize.z);
+            yzVertices.push(0, y, 0, 0, y, spaceSize.z);
         }
         for (let z = 0; z <= spaceSize.z; z++) {
-        yzVertices.push(0, 0, z, 0, spaceSize.y, z);
+            yzVertices.push(0, 0, z, 0, spaceSize.y, z);
         }
         yzGeometry.setAttribute('position', new THREE.Float32BufferAttribute(yzVertices, 3));
         gridGroup.add(new THREE.LineSegments(yzGeometry, gridMaterial));
@@ -194,55 +201,55 @@ const WorkerConsole = () => {
         scene.gridGroup = gridGroup;
     }, []);
 
-    // 添加轴线刻度 - 直接从for.js复制
+    // 添加轴线刻度
     const addTicks = useCallback((scene, axis, length) => {
         const tickMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
         const fontLoader = new FontLoader();
         const tickInterval = 2;
 
         for (let i = 0; i <= length; i += tickInterval) {
-        const tickGeometry = new THREE.BufferGeometry();
-        const tickPoints = [];
+            const tickGeometry = new THREE.BufferGeometry();
+            const tickPoints = [];
 
-        if (axis === "x") {
-            tickPoints.push(new THREE.Vector3(i, -0.1, 0));
-            tickPoints.push(new THREE.Vector3(i, 0.1, 0));
-        } else if (axis === "y") {
-            tickPoints.push(new THREE.Vector3(-0.1, i, 0));
-            tickPoints.push(new THREE.Vector3(0.1, i, 0));
-        } else if (axis === "z") {
-            tickPoints.push(new THREE.Vector3(0, -0.1, i));
-            tickPoints.push(new THREE.Vector3(0, 0.1, i));
-        }
-
-        tickGeometry.setFromPoints(tickPoints);
-        const tickLine = new THREE.Line(tickGeometry, tickMaterial);
-        scene.add(tickLine);
-
-        fontLoader.load(
-            "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
-            (font) => {
-            const textGeometry = new TextGeometry(i.toString(), {
-                font: font,
-                size: 0.3,
-                depth: 0.05,
-            });
-            const textMesh = new THREE.Mesh(
-                textGeometry,
-                new THREE.MeshBasicMaterial({ color: 0x000000 })
-            );
-
-            if (axis === "x") textMesh.position.set(i, -0.5, 0);
-            if (axis === "y") textMesh.position.set(-0.5, i, 0);
-            if (axis === "z") textMesh.position.set(0, -0.5, i);
-            
-            scene.add(textMesh);
+            if (axis === "x") {
+                tickPoints.push(new THREE.Vector3(i, -0.1, 0));
+                tickPoints.push(new THREE.Vector3(i, 0.1, 0));
+            } else if (axis === "y") {
+                tickPoints.push(new THREE.Vector3(-0.1, i, 0));
+                tickPoints.push(new THREE.Vector3(0.1, i, 0));
+            } else if (axis === "z") {
+                tickPoints.push(new THREE.Vector3(0, -0.1, i));
+                tickPoints.push(new THREE.Vector3(0, 0.1, i));
             }
-        );
+
+            tickGeometry.setFromPoints(tickPoints);
+            const tickLine = new THREE.Line(tickGeometry, tickMaterial);
+            scene.add(tickLine);
+
+            fontLoader.load(
+                "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+                (font) => {
+                    const textGeometry = new TextGeometry(i.toString(), {
+                        font: font,
+                        size: 0.3,
+                        depth: 0.05,
+                    });
+                    const textMesh = new THREE.Mesh(
+                        textGeometry,
+                        new THREE.MeshBasicMaterial({ color: 0x000000 })
+                    );
+
+                    if (axis === "x") textMesh.position.set(i, -0.5, 0);
+                    if (axis === "y") textMesh.position.set(-0.5, i, 0);
+                    if (axis === "z") textMesh.position.set(0, -0.5, i);
+                    
+                    scene.add(textMesh);
+                }
+            );
         }
     }, []);
 
-    // 创建坐标轴 - 直接从for.js复制
+    // 创建坐标轴
     const createThickAxis = useCallback((scene, spaceSize, onlyAxis = false) => {
         const axisMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
@@ -272,47 +279,47 @@ const WorkerConsole = () => {
         addTicks(scene, "z", spaceSize.z);
     }, [createGrids, addTicks]);
 
-    // 添加坐标轴标签 - 直接从for.js复制
+    // 添加坐标轴标签
     const addAxisLabels = useCallback((scene, length) => {
         const loader = new FontLoader();
         loader.load(
-        'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
-        (font) => {
-            const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            
-            ['Width (X)', 'Height (Y)', 'Depth (Z)'].forEach((label, index) => {
-            const textGeometry = new TextGeometry(label, {
-                font: font,
-                size: 0.5,
-                depth: 0.1,
-            });
-            const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-            
-            switch(index) {
-                case 0:
-                textMesh.position.set(length + 0.5, 0, 0);
-                break;
-                case 1:
-                textMesh.position.set(0, length + 0.5, 0);
-                break;
-                case 2:
-                textMesh.position.set(0, 0, length + 0.5);
-                break;
-                default:
-                break;
+            'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+            (font) => {
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                
+                ['Width (X)', 'Height (Y)', 'Depth (Z)'].forEach((label, index) => {
+                    const textGeometry = new TextGeometry(label, {
+                        font: font,
+                        size: 0.5,
+                        depth: 0.1,
+                    });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    
+                    switch(index) {
+                        case 0:
+                            textMesh.position.set(length + 0.5, 0, 0);
+                            break;
+                        case 1:
+                            textMesh.position.set(0, length + 0.5, 0);
+                            break;
+                        case 2:
+                            textMesh.position.set(0, 0, length + 0.5);
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    scene.add(textMesh);
+                });
             }
-            
-            scene.add(textMesh);
-            });
-        }
         );
     }, []);
 
-    // 处理鼠标移动 - 直接从for.js复制
+    // 处理鼠标移动
     const handleMouseMove = useCallback((e) => {
         e.preventDefault();
 
-        if (!isMouseDown.current || !cameraRef.current) return;
+        if (!isMouseDown.current || !camera3DRef.current) return;
 
         const deltaX = e.clientX - mousePosition.current.x;
         const deltaY = e.clientY - mousePosition.current.y;
@@ -323,11 +330,11 @@ const WorkerConsole = () => {
         // 限制垂直旋转角度
         cameraRotation.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.current.x));
 
-        const camera = cameraRef.current;
+        const camera = camera3DRef.current;
         const radius = Math.sqrt(
-        camera.position.x ** 2 + 
-        camera.position.y ** 2 + 
-        camera.position.z ** 2
+            camera.position.x ** 2 + 
+            camera.position.y ** 2 + 
+            camera.position.z ** 2
         );
 
         camera.position.x = radius * Math.cos(cameraRotation.current.y) * Math.cos(cameraRotation.current.x);
@@ -337,22 +344,22 @@ const WorkerConsole = () => {
         camera.lookAt(0, 0, 0);
         
         mousePosition.current = {
-        x: e.clientX,
-        y: e.clientY
+            x: e.clientX,
+            y: e.clientY
         };
     }, []);
 
-    // 处理鼠标滚轮 - 直接从for.js复制
+    // 处理鼠标滚轮
     const handleWheel = useCallback((e) => {
-        const camera = cameraRef.current;
+        const camera = camera3DRef.current;
         if (!camera) return;
 
         const zoomSpeed = 0.1;
         const direction = e.deltaY > 0 ? 1 : -1;
         const radius = Math.sqrt(
-        camera.position.x ** 2 + 
-        camera.position.y ** 2 + 
-        camera.position.z ** 2
+            camera.position.x ** 2 + 
+            camera.position.y ** 2 + 
+            camera.position.z ** 2
         );
 
         const newRadius = radius * (1 + direction * zoomSpeed);
@@ -362,73 +369,157 @@ const WorkerConsole = () => {
         const maxRadius = Math.max(50, maxDimension * 3);
         
         if (newRadius >= minRadius && newRadius <= maxRadius) {
-        const scale = newRadius / radius;
-        camera.position.multiplyScalar(scale);
-        camera.lookAt(0, 0, 0);
+            const scale = newRadius / radius;
+            camera.position.multiplyScalar(scale);
+            camera.lookAt(0, 0, 0);
         }
     }, [spaceSize]);
 
-    // 处理窗口大小变化 - 直接从for.js复制
+    // 处理窗口大小变化
     const handleResize = useCallback(() => {
-        if (rendererRef.current && mountRef.current && cameraRef.current) {
-        const width = mountRef.current.clientWidth;
-        const height = mountRef.current.clientHeight;
-        rendererRef.current.setSize(width, height, true);
-        cameraRef.current.aspect = width / height;
-        cameraRef.current.updateProjectionMatrix();
+        // 处理3D视图的窗口大小变化
+        if (renderer3DRef.current && mount3DRef.current && camera3DRef.current) {
+            const width = mount3DRef.current.clientWidth;
+            const height = mount3DRef.current.clientHeight;
+            renderer3DRef.current.setSize(width, height, true);
+            camera3DRef.current.aspect = width / height;
+            camera3DRef.current.updateProjectionMatrix();
+        }
+        
+        // 处理顶视图的窗口大小变化
+        if (rendererTopViewRef.current && mountTopViewRef.current && cameraTopViewRef.current) {
+            const width = mountTopViewRef.current.clientWidth;
+            const height = mountTopViewRef.current.clientHeight;
+            rendererTopViewRef.current.setSize(width, height, true);
         }
     }, []);
 
-    // 鼠标按下事件 - 直接从for.js复制
+    // 鼠标按下事件
     const handleMouseDown = useCallback((e) => {
         isMouseDown.current = true;
         mousePosition.current = {
-        x: e.clientX,
-        y: e.clientY
+            x: e.clientX,
+            y: e.clientY
         };
     }, []);
 
-    // 鼠标释放事件 - 直接从for.js复制
+    // 鼠标释放事件
     const handleMouseUp = useCallback(() => {
         isMouseDown.current = false;
     }, []);
 
-    // 添加或高亮物品
+    // 添加或高亮物品 - 修改后的函数
+    // const addOrHighlightItem = useCallback((item) => {
+    //     if (!scene3DRef.current || !sceneTopViewRef.current) return;
+        
+    //     // 首先检查是否已经放置过这个物品
+    //     const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
+        
+    //     // 所有物品在3D视图和顶视图中都要处理
+    //     const scenes = [scene3DRef.current, sceneTopViewRef.current];
+        
+    //     // 在两个场景中处理物品
+    //     scenes.forEach(scene => {
+    //         // 检查物品是否已存在于场景中
+    //         const existingMesh = scene.children.find(
+    //             child => child.userData && child.userData.itemId === item.id
+    //         );
+            
+    //         if (existingMesh) {
+    //             // 如果物品已存在，高亮显示它并使其他物品变暗
+    //             scene.children.forEach(child => {
+    //                 if (child.material && child.material.type === 'MeshPhongMaterial') {
+    //                     if (child.userData && child.userData.itemId === item.id) {
+    //                         // 当前物品高亮显示
+    //                         child.material.opacity = 0.8;
+    //                         child.material.color.set(item.color || 0x3498db);
+    //                     } else {
+    //                         // 其他物品变暗
+    //                         child.material.opacity = 0.3;
+    //                         child.material.color.set(child.userData.originalColor || 0xcccccc);
+    //                     }
+    //                 }
+    //             });
+    //         } else {
+    //             // 如果物品不存在，创建新物品
+    //             const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
+    //             const material = new THREE.MeshPhongMaterial({
+    //                 color: item.color || 0x3498db,
+    //                 transparent: true,
+    //                 opacity: 0.8
+    //             });
+                
+    //             const cube = new THREE.Mesh(geometry, material);
+    //             cube.position.set(
+    //                 item.x + item.width / 2,
+    //                 item.y + item.height / 2,
+    //                 item.z + item.depth / 2
+    //             );
+                
+    //             // 存储物品信息
+    //             cube.userData = {
+    //                 itemId: item.id,
+    //                 originalColor: item.color || 0x3498db
+    //             };
+                
+    //             // 添加线框边缘以提高可见性
+    //             const edges = new THREE.EdgesGeometry(geometry);
+    //             const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+    //             const wireframe = new THREE.LineSegments(edges, lineMaterial);
+    //             cube.add(wireframe);
+                
+    //             scene.add(cube);
+                
+    //             // 使其他物品半透明
+    //             scene.children.forEach(child => {
+    //                 if (child.material && 
+    //                     child.material.type === 'MeshPhongMaterial' && 
+    //                     child.userData && 
+    //                     child.userData.itemId !== item.id) {
+    //                     child.material.opacity = 0.3;
+    //                 }
+    //             });
+    //         }
+    //     });
+        
+    //     // 如果这是一个新放置的物品，添加到已放置物品列表中
+    //     if (!isItemPlaced) {
+    //         setPlacedItems(prev => [...prev, item]);
+    //     }
+    // }, [placedItems]);
+
+    // 添加或高亮物品 - 修改后的函数
     const addOrHighlightItem = useCallback((item) => {
-        if (!sceneRef.current) return;
+        if (!scene3DRef.current || !sceneTopViewRef.current) return;
         
-        // Clear all existing items first if there's a material issue
-        const existingItems = sceneRef.current.children.filter(
-            child => child.userData && child.userData.itemId
-        );
+        // 首先检查是否已经放置过这个物品
+        const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
         
-        // If we're switching tasks, remove all existing items
-        if (existingItems.length > 0 && !existingItems.some(mesh => mesh.userData.itemId === item.id)) {
-            existingItems.forEach(mesh => {
-                sceneRef.current.remove(mesh);
-            });
-        }
+        // 处理3D视图场景
+        const scene3D = scene3DRef.current;
         
-        // Now look for this specific item
-        const existingMesh = sceneRef.current.children.find(
+        // 检查物品是否已存在于3D场景中
+        const existing3DMesh = scene3D.children.find(
             child => child.userData && child.userData.itemId === item.id
         );
         
-        if (existingMesh) {
-            // If already exists, highlight it
-            sceneRef.current.children.forEach(child => {
+        if (existing3DMesh) {
+            // 如果物品已存在，高亮显示它并使其他物品变暗
+            scene3D.children.forEach(child => {
                 if (child.material && child.material.type === 'MeshPhongMaterial') {
                     if (child.userData && child.userData.itemId === item.id) {
+                        // 当前物品高亮显示
                         child.material.opacity = 0.8;
                         child.material.color.set(item.color || 0x3498db);
                     } else {
+                        // 其他物品变暗
                         child.material.opacity = 0.3;
                         child.material.color.set(child.userData.originalColor || 0xcccccc);
                     }
                 }
             });
         } else {
-            // If doesn't exist, create new item
+            // 如果物品不存在，创建新物品 (3D视图)
             const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
             const material = new THREE.MeshPhongMaterial({
                 color: item.color || 0x3498db,
@@ -443,22 +534,22 @@ const WorkerConsole = () => {
                 item.z + item.depth / 2
             );
             
-            // Store item info
+            // 存储物品信息
             cube.userData = {
                 itemId: item.id,
                 originalColor: item.color || 0x3498db
             };
             
-            // Add wireframe edges for better visibility
+            // 添加线框边缘以提高可见性
             const edges = new THREE.EdgesGeometry(geometry);
             const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
             const wireframe = new THREE.LineSegments(edges, lineMaterial);
             cube.add(wireframe);
             
-            sceneRef.current.add(cube);
+            scene3D.add(cube);
             
-            // Make other items semi-transparent
-            sceneRef.current.children.forEach(child => {
+            // 使其他物品半透明
+            scene3D.children.forEach(child => {
                 if (child.material && 
                     child.material.type === 'MeshPhongMaterial' && 
                     child.userData && 
@@ -467,91 +558,335 @@ const WorkerConsole = () => {
                 }
             });
         }
-    }, []);
+        
+        // 现在单独处理顶视图
+        const sceneTop = sceneTopViewRef.current;
+        
+        // 检查物品是否已存在于顶视图场景中
+        const existingTopMesh = sceneTop.children.find(
+            child => child.userData && child.userData.itemId === item.id
+        );
+        
+        if (existingTopMesh) {
+            // 高亮显示此物品并使顶视图中的其他物品变暗
+            sceneTop.children.forEach(child => {
+                if (child.material && (
+                    child.material.type === 'MeshPhongMaterial' || 
+                    child.material.type === 'MeshBasicMaterial')) {
+                    if (child.userData && child.userData.itemId === item.id) {
+                        child.material.opacity = 0.9;
+                        child.material.color.set(item.color || 0x3498db);
+                    } else if (child.userData && child.userData.isItemMesh) {
+                        child.material.opacity = 0.3;
+                        child.material.color.set(child.userData.originalColor || 0xcccccc);
+                    }
+                }
+            });
+        } else {
+            // 对于顶视图，我们将使用更扁平的表示
+            // 创建一个2D矩形，从上方看物品
+            const topMaterial = new THREE.MeshBasicMaterial({
+                color: item.color || 0x3498db,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            // 创建一个平面来表示顶视图中的物品
+            const planeGeometry = new THREE.PlaneGeometry(item.width, item.depth);
+            const plane = new THREE.Mesh(planeGeometry, topMaterial);
+            
+            // 旋转使其平躺在XZ平面上
+            plane.rotation.x = -Math.PI / 2;
+            
+            // 定位在物品XZ坐标的中心
+            plane.position.set(
+                item.x + item.width / 2,
+                item.y, // 定位在物品底部
+                item.z + item.depth / 2
+            );
+            
+            plane.userData = {
+                itemId: item.id,
+                originalColor: item.color || 0x3498db,
+                isItemMesh: true
+            };
+            
+            // 添加轮廓
+            // 黑线
+            // const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
+            // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+            // const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+            // plane.add(outline);
+            
+            // 添加带有物品ID的文本标签
+            // const loader = new FontLoader();
+            // loader.load(
+            //     'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+            //     (font) => {
+            //         const textGeometry = new TextGeometry(item.id.replace('item', ''), {
+            //             font: font,
+            //             size: 0.3,
+            //             height: 0.05,
+            //         });
+            //         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            //         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    
+            //         // 计算并居中文本
+            //         textGeometry.computeBoundingBox();
+            //         const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+                    
+            //         // 将文本定位在物品中心
+            //         textMesh.position.set(
+            //             -textWidth / 2,
+            //             0.1, // 稍微高于平面
+            //             0
+            //         );
+            //         textMesh.rotation.x = Math.PI / 2;
+            //         plane.add(textMesh);
+            //     }
+            // );
+            
+            // 添加高度指示器
+            // 创建一条垂直线以显示高度
+            // 可以添加或删除
+            // const heightLineGeometry = new THREE.BufferGeometry();
+            // const heightVertices = [
+            //     0, 0, 0,
+            //     0, item.height, 0
+            // ];
+            // heightLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(heightVertices, 3));
+            // const heightLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+            // const heightLine = new THREE.Line(heightLineGeometry, heightLineMaterial);
+            // plane.add(heightLine);
+            
+            sceneTop.add(plane);
+            
+            // 使顶视图中的其他物品变暗
+            sceneTop.children.forEach(child => {
+                if (child.userData && 
+                    child.userData.isItemMesh && 
+                    child.userData.itemId !== item.id) {
+                    if (child.material) {
+                        child.material.opacity = 0.3;
+                    }
+                }
+            });
+        }
+        
+        // 如果这是一个新放置的物品，添加到已放置物品列表中
+        if (!isItemPlaced) {
+            setPlacedItems(prev => [...prev, item]);
+        }
+    }, [placedItems]);
 
-    // Initialize Three.js scene when component mounts or space size changes
+    // 初始化Three.js场景 - 现在创建两个场景：3D视图和顶视图
     useEffect(() => {
-        if (!mountRef.current) return;
+        if (!mount3DRef.current || !mountTopViewRef.current) return;
 
-        // Clear the scene if it exists
-        if (sceneRef.current) {
-            while(sceneRef.current.children.length > 0) { 
-                sceneRef.current.remove(sceneRef.current.children[0]); 
+        // 清除两个场景
+        if (scene3DRef.current) {
+            while(scene3DRef.current.children.length > 0) { 
+                scene3DRef.current.remove(scene3DRef.current.children[0]); 
+            }
+        }
+        
+        if (sceneTopViewRef.current) {
+            while(sceneTopViewRef.current.children.length > 0) { 
+                sceneTopViewRef.current.remove(sceneTopViewRef.current.children[0]); 
             }
         }
 
-        const mountNode = mountRef.current;
+        // 1. 设置3D视图
+        const mount3DNode = mount3DRef.current;
+        const scene3D = new THREE.Scene();
+        scene3D.background = new THREE.Color(0xf0f0f0);
+        scene3DRef.current = scene3D;
 
-        // Create scene
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf0f0f0);
-        sceneRef.current = scene;
+        const modelGroup3D = new THREE.Group();
+        scene3D.add(modelGroup3D);
+        scene3D.modelGroup = modelGroup3D;
 
-        // Create model group
-        const modelGroup = new THREE.Group();
-        scene.add(modelGroup);
-        scene.modelGroup = modelGroup;
-
-        // Create camera
-        const camera = new THREE.PerspectiveCamera(
+        const camera3D = new THREE.PerspectiveCamera(
             75, 
-            mountNode.clientWidth / mountNode.clientHeight, 
+            mount3DNode.clientWidth / mount3DNode.clientHeight, 
             0.1, 
             1000
         );
-        camera.position.set(15, 10, 15);
-        camera.lookAt(0, 0, 0);
-        cameraRef.current = camera;
+        camera3D.position.set(15, 10, 15);
+        camera3D.lookAt(0, 0, 0);
+        camera3DRef.current = camera3D;
 
-        // Create renderer if it doesn't exist yet
-        if (!rendererRef.current) {
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(mountNode.clientWidth, mountNode.clientHeight);
-            mountNode.appendChild(renderer.domElement);
-            rendererRef.current = renderer;
+        if (!renderer3DRef.current) {
+            const renderer3D = new THREE.WebGLRenderer({ antialias: true });
+            renderer3D.setSize(mount3DNode.clientWidth, mount3DNode.clientHeight);
+            mount3DNode.appendChild(renderer3D.domElement);
+            renderer3DRef.current = renderer3D;
         }
 
-        // Add axes and grid
-        const axisLength = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
-        createThickAxis(scene, spaceSize, false);
-        addAxisLabels(scene, axisLength);
+        // 添加3D视图的坐标轴和网格
+        const axisLength3D = Math.max(spaceSize.x, spaceSize.y, spaceSize.z);
+        createThickAxis(scene3D, spaceSize, false);
+        addAxisLabels(scene3D, axisLength3D);
 
-        // Create light group
-        const lightGroup = new THREE.Group();
-        scene.add(lightGroup);
-        scene.lightGroup = lightGroup;
+        // 创建3D视图的光源组
+        const lightGroup3D = new THREE.Group();
+        scene3D.add(lightGroup3D);
+        scene3D.lightGroup = lightGroup3D;
 
-        // Add directional light
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(1, 1, 1);
-        lightGroup.add(light);
+        // 添加3D视图的光源
+        const light3D = new THREE.DirectionalLight(0xffffff, 1);
+        light3D.position.set(1, 1, 1);
+        lightGroup3D.add(light3D);
+        lightGroup3D.add(new THREE.AmbientLight(0x404040));
 
-        // Add ambient light
-        lightGroup.add(new THREE.AmbientLight(0x404040));
+        // 2. 设置顶视图
+        const mountTopViewNode = mountTopViewRef.current;
+        const sceneTopView = new THREE.Scene();
+        sceneTopView.background = new THREE.Color(0xf0f0f0);
+        sceneTopViewRef.current = sceneTopView;
 
-        // Add event listeners
+        // 为顶视图创建正交相机(顶视图)
+        // const aspectRatio = mountTopViewNode.clientWidth / mountTopViewNode.clientHeight;
+        // const viewSize = Math.max(spaceSize.x, spaceSize.z) * 1.2;  // 确保完全可见
+
+        // const cameraTopView = new THREE.OrthographicCamera(
+        //     -viewSize * aspectRatio / 2,
+        //     viewSize * aspectRatio / 2,
+        //     viewSize / 2,
+        //     -viewSize / 2,
+        //     0.1,
+        //     1000
+        // );
+        // // 将相机放置在指定位置
+        // cameraTopView.position.set(spaceSize.x / 2, spaceSize.y / 2, spaceSize.z * 5);
+        // console.log('Top view camera position:', cameraTopView.position);
+
+        // // 设置相机观察目标点 - 看向空间中心
+        // cameraTopView.lookAt(spaceSize.x / 2, spaceSize.y / 2, 0);
+        // // 设置相机的up方向 - 确保顶视图方向正确
+        // cameraTopView.up.set(0, 1, 0);
+
+        // 为顶视图创建正交相机(顶视图)
+        // 这里的问题
+        const aspectRatio = mountTopViewNode.clientWidth / mountTopViewNode.clientHeight;
+        const viewSize = Math.max(spaceSize.x, spaceSize.z) * 3;  // 确保完全可见 
+
+        const cameraTopView = new THREE.OrthographicCamera(
+            -viewSize * aspectRatio / 2,
+            viewSize * aspectRatio / 2,
+            viewSize / 2,
+            -viewSize / 2,
+            0.1,
+            1000
+        );
+        // 将相机放置在正上方
+        cameraTopView.position.set(spaceSize.x / 2, spaceSize.y * 5, spaceSize.z / 2);
+        console.log('Top view camera position:', cameraTopView.position);
+
+        // 设置相机观察目标点 - 看向空间中心底部
+        cameraTopView.lookAt(spaceSize.x / 2, 0, spaceSize.z / 2);
+        // 设置相机的up方向 - 确保顶视图方向正确
+        cameraTopView.up.set(0, 0, -1);
+
+
+
+
+        cameraTopViewRef.current = cameraTopView;
+
+        if (!rendererTopViewRef.current) {
+            const rendererTopView = new THREE.WebGLRenderer({ antialias: true });
+            rendererTopView.setSize(mountTopViewNode.clientWidth, mountTopViewNode.clientHeight);
+            mountTopViewNode.appendChild(rendererTopView.domElement);
+            rendererTopViewRef.current = rendererTopView;
+        }
+
+        // 为顶视图添加基本的网格和坐标轴
+        // const gridTopView = new THREE.GridHelper(
+        //     Math.max(spaceSize.x, spaceSize.z), 
+        //     Math.max(spaceSize.x, spaceSize.z), 
+        //     0x000000, 
+        //     0x555555
+        // );
+        // gridTopView.rotation.x = Math.PI / 2;
+        // gridTopView.position.set(spaceSize.x / 2, 0, spaceSize.z / 2);
+        // sceneTopView.add(gridTopView);
+
+        // 为顶视图添加基本的网格和坐标轴
+        const gridTopView = new THREE.GridHelper(
+            Math.max(spaceSize.x, spaceSize.z), 
+            Math.max(spaceSize.x, spaceSize.z), 
+            0x000000, 
+            0x555555
+        );
+        // 不需要旋转网格，因为我们是从上方直接看下去
+        gridTopView.position.set(spaceSize.x / 2, 0, spaceSize.z / 2);
+        sceneTopView.add(gridTopView);
+
+        // 添加空间边界轮廓以使其更清晰
+        const spaceOutlineGeometry = new THREE.BufferGeometry();
+        const spaceVertices = [
+            // 底部矩形
+            0, 0, 0,  spaceSize.x, 0, 0,
+            spaceSize.x, 0, 0,  spaceSize.x, 0, spaceSize.z,
+            spaceSize.x, 0, spaceSize.z,  0, 0, spaceSize.z,
+            0, 0, spaceSize.z,  0, 0, 0
+        ];
+        spaceOutlineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(spaceVertices, 3));
+        const spaceOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
+        const spaceOutline = new THREE.LineSegments(spaceOutlineGeometry, spaceOutlineMaterial);
+        sceneTopView.add(spaceOutline);
+
+
+
+
+
+
+
+
+
+
+
+
+        // 为顶视图添加光源
+        const lightTopView = new THREE.DirectionalLight(0xffffff, 1);
+        lightTopView.position.set(0, 1, 0);
+        sceneTopView.add(lightTopView);
+        sceneTopView.add(new THREE.AmbientLight(0x404040));
+
+        // 添加事件监听器
         window.addEventListener('resize', handleResize);
-        rendererRef.current.domElement.addEventListener('mousedown', handleMouseDown);
-        rendererRef.current.domElement.addEventListener('wheel', handleWheel, { passive: false });
+        renderer3DRef.current.domElement.addEventListener('mousedown', handleMouseDown);
+        renderer3DRef.current.domElement.addEventListener('wheel', handleWheel, { passive: false });
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('mousemove', handleMouseMove);
 
-        // Animation loop
-        const animate = () => {
-            frameIdRef.current = requestAnimationFrame(animate);
-            rendererRef.current.render(scene, camera);
+        // 3D视图的动画循环
+        const animate3D = () => {
+            frameId3DRef.current = requestAnimationFrame(animate3D);
+            renderer3DRef.current.render(scene3D, camera3D);
         };
-        animate();
+        animate3D();
 
-        // Cleanup
+        // 顶视图的动画循环
+        const animateTopView = () => {
+            frameIdTopViewRef.current = requestAnimationFrame(animateTopView);
+            rendererTopViewRef.current.render(sceneTopView, cameraTopView);
+        };
+        animateTopView();
+
+        // 清理函数
         return () => {
-            if (frameIdRef.current) {
-                cancelAnimationFrame(frameIdRef.current);
+            if (frameId3DRef.current) {
+                cancelAnimationFrame(frameId3DRef.current);
+            }
+            
+            if (frameIdTopViewRef.current) {
+                cancelAnimationFrame(frameIdTopViewRef.current);
             }
             
             window.removeEventListener('resize', handleResize);
-            rendererRef.current.domElement.removeEventListener('mousedown', handleMouseDown);
-            rendererRef.current.domElement.removeEventListener('wheel', handleWheel);
+            renderer3DRef.current.domElement.removeEventListener('mousedown', handleMouseDown);
+            renderer3DRef.current.domElement.removeEventListener('wheel', handleWheel);
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('mousemove', handleMouseMove);
         };
@@ -566,7 +901,7 @@ const WorkerConsole = () => {
         handleResize
     ]);
 
-    // Handle Next Item button click
+    // 处理Next Item按钮点击
     const handleNextItem = () => {
         const nextIndex = currentItemIndex + 1;
         if (nextIndex < itemList.length) {
@@ -575,7 +910,7 @@ const WorkerConsole = () => {
         }
     };
 
-    // Handle Previous Item button click
+    // 处理Previous Item按钮点击
     const handlePreviousItem = () => {
         const prevIndex = currentItemIndex - 1;
         if (prevIndex >= 0) {
@@ -584,20 +919,20 @@ const WorkerConsole = () => {
         }
     };
 
-    // Handle item selection from list
+    // 处理从列表中选择物品
     const handleSelectItem = (item, index) => {
         setCurrentItemIndex(index);
         addOrHighlightItem(item);
     };
 
-    // Handle refresh button click
+    // 处理刷新按钮点击
     const handleRefresh = () => {
         if (currentUser && currentUser.id) {
             fetchWorkerTasks(currentUser.id);
         }
     };
 
-    // Format the date for display
+    // 格式化日期显示
     const formatDate = (dateString) => {
         try {
             const date = new Date(dateString);
@@ -607,7 +942,7 @@ const WorkerConsole = () => {
         }
     };
 
-    // Get the current selected item
+    // 获取当前选中的物品
     const currentItem = currentItemIndex >= 0 && currentItemIndex < itemList.length 
         ? itemList[currentItemIndex] 
         : null;
@@ -734,7 +1069,7 @@ const WorkerConsole = () => {
                         </Paper>
                     </Box>
                 
-                    {/* 3D View and Item List */}
+                    {/* 3D View, Top View and Item List */}
                     <Box sx={{ 
                         flex: 1,
                         px: 2,
@@ -744,7 +1079,7 @@ const WorkerConsole = () => {
                     }}>
                         <Grid container spacing={2} sx={{ height: '100%' }}>
                             {/* 3D View */}
-                            <Grid item xs={12} md={8} sx={{ height: '100%' }}>
+                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
                                 <Paper 
                                     elevation={3} 
                                     sx={{ 
@@ -761,7 +1096,36 @@ const WorkerConsole = () => {
                                         3D View - Item Configuration
                                     </Typography>
                                     <Box 
-                                        ref={mountRef} 
+                                        ref={mount3DRef} 
+                                        sx={{ 
+                                            width: '100%', 
+                                            flex: 1,
+                                            borderRadius: 1,
+                                            overflow: 'hidden' 
+                                        }}
+                                    />
+                                </Paper>
+                            </Grid>
+                            
+                            {/* Top View */}
+                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                                <Paper 
+                                    elevation={3} 
+                                    sx={{ 
+                                        p: 1, 
+                                        height: '100%',
+                                        bgcolor: '#fff',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}
+                                >
+                                    <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
+                                        Top View - Current Layer
+                                    </Typography>
+                                    <Box 
+                                        ref={mountTopViewRef} 
                                         sx={{ 
                                             width: '100%', 
                                             flex: 1,
@@ -914,7 +1278,7 @@ const WorkerConsole = () => {
                                     p: 2
                                 }}>
                                     <Typography variant="body1" color="text.secondary" align="center">
-                                        Select an item from the list above to see its details.
+                                        Select an item from the list above or use the navigation buttons below to see item details.
                                     </Typography>
                                 </Box>
                             )}
