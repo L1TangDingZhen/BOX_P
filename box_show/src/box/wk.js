@@ -50,7 +50,9 @@ const WorkerConsole = () => {
     const [itemList, setItemList] = useState([]);
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
     const [placedItems, setPlacedItems] = useState([]);  // 跟踪已放置的物品
-    
+    const [currentLayerY, setCurrentLayerY] = useState(0);  // 跟踪当前显示层的Y坐标
+
+
     // Worker and tasks states
     const [currentUser, setCurrentUser] = useState(null);
     const [workerTasks, setWorkerTasks] = useState([]);
@@ -71,14 +73,14 @@ const WorkerConsole = () => {
     const handleSelectTask = useCallback((task) => {
         setSelectedTask(task);
         
-        // Update space size based on task's space_info
+        // 更新space size基于task的space_info
         setSpaceSize({
             x: task.space_info.x,
             y: task.space_info.y,
             z: task.space_info.z
         });
         
-        // Map API items to the format expected by the 3D visualization
+        // 映射API项目到3D可视化期望的格式
         const formattedItems = task.items.map(item => ({
             id: `item${item.order_id}`,
             name: item.name,
@@ -92,12 +94,13 @@ const WorkerConsole = () => {
                 ...(item.face_up ? ['Face Up'] : []),
                 ...(item.fragile ? ['Fragile'] : [])
             ],
-            color: getRandomColor(item.order_id) // Assign a color based on order_id
+            color: getRandomColor(item.order_id) // 基于order_id分配颜色
         }));
         
         setItemList(formattedItems);
-        setCurrentItemIndex(-1); // Reset the selected item
+        setCurrentItemIndex(-1); // 重置选定项
         setPlacedItems([]); // 重置已放置物品列表
+        setCurrentLayerY(0); // 重置当前层级为0
     }, []);
 
     // Fetch worker tasks from API
@@ -489,11 +492,205 @@ const WorkerConsole = () => {
     // }, [placedItems]);
 
     // 添加或高亮物品 - 修改后的函数
+    // const addOrHighlightItem = useCallback((item) => {
+    //     if (!scene3DRef.current || !sceneTopViewRef.current) return;
+        
+    //     // 首先检查是否已经放置过这个物品
+    //     const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
+        
+    //     // 处理3D视图场景
+    //     const scene3D = scene3DRef.current;
+        
+    //     // 检查物品是否已存在于3D场景中
+    //     const existing3DMesh = scene3D.children.find(
+    //         child => child.userData && child.userData.itemId === item.id
+    //     );
+        
+    //     if (existing3DMesh) {
+    //         // 如果物品已存在，高亮显示它并使其他物品变暗
+    //         scene3D.children.forEach(child => {
+    //             if (child.material && child.material.type === 'MeshPhongMaterial') {
+    //                 if (child.userData && child.userData.itemId === item.id) {
+    //                     // 当前物品高亮显示
+    //                     child.material.opacity = 0.8;
+    //                     child.material.color.set(item.color || 0x3498db);
+    //                 } else {
+    //                     // 其他物品变暗
+    //                     child.material.opacity = 0.3;
+    //                     child.material.color.set(child.userData.originalColor || 0xcccccc);
+    //                 }
+    //             }
+    //         });
+    //     } else {
+    //         // 如果物品不存在，创建新物品 (3D视图)
+    //         const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
+    //         const material = new THREE.MeshPhongMaterial({
+    //             color: item.color || 0x3498db,
+    //             transparent: true,
+    //             opacity: 0.8
+    //         });
+            
+    //         const cube = new THREE.Mesh(geometry, material);
+    //         cube.position.set(
+    //             item.x + item.width / 2,
+    //             item.y + item.height / 2,
+    //             item.z + item.depth / 2
+    //         );
+            
+    //         // 存储物品信息
+    //         cube.userData = {
+    //             itemId: item.id,
+    //             originalColor: item.color || 0x3498db
+    //         };
+            
+    //         // 添加线框边缘以提高可见性
+    //         const edges = new THREE.EdgesGeometry(geometry);
+    //         const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+    //         const wireframe = new THREE.LineSegments(edges, lineMaterial);
+    //         cube.add(wireframe);
+            
+    //         scene3D.add(cube);
+            
+    //         // 使其他物品半透明
+    //         scene3D.children.forEach(child => {
+    //             if (child.material && 
+    //                 child.material.type === 'MeshPhongMaterial' && 
+    //                 child.userData && 
+    //                 child.userData.itemId !== item.id) {
+    //                 child.material.opacity = 0.3;
+    //             }
+    //         });
+    //     }
+        
+    //     // 现在单独处理顶视图
+    //     const sceneTop = sceneTopViewRef.current;
+        
+    //     // 检查物品是否已存在于顶视图场景中
+    //     const existingTopMesh = sceneTop.children.find(
+    //         child => child.userData && child.userData.itemId === item.id
+    //     );
+        
+    //     if (existingTopMesh) {
+    //         // 高亮显示此物品并使顶视图中的其他物品变暗
+    //         sceneTop.children.forEach(child => {
+    //             if (child.material && (
+    //                 child.material.type === 'MeshPhongMaterial' || 
+    //                 child.material.type === 'MeshBasicMaterial')) {
+    //                 if (child.userData && child.userData.itemId === item.id) {
+    //                     child.material.opacity = 0.9;
+    //                     child.material.color.set(item.color || 0x3498db);
+    //                 } else if (child.userData && child.userData.isItemMesh) {
+    //                     child.material.opacity = 0.3;
+    //                     child.material.color.set(child.userData.originalColor || 0xcccccc);
+    //                 }
+    //             }
+    //         });
+    //     } else {
+    //         // 对于顶视图，我们将使用更扁平的表示
+    //         // 创建一个2D矩形，从上方看物品
+    //         const topMaterial = new THREE.MeshBasicMaterial({
+    //             color: item.color || 0x3498db,
+    //             transparent: true,
+    //             opacity: 0.7
+    //         });
+            
+    //         // 创建一个平面来表示顶视图中的物品
+    //         const planeGeometry = new THREE.PlaneGeometry(item.width, item.depth);
+    //         const plane = new THREE.Mesh(planeGeometry, topMaterial);
+            
+    //         // 旋转使其平躺在XZ平面上
+    //         plane.rotation.x = -Math.PI / 2;
+            
+    //         // 定位在物品XZ坐标的中心
+    //         plane.position.set(
+    //             item.x + item.width / 2,
+    //             item.y, // 定位在物品底部
+    //             item.z + item.depth / 2
+    //         );
+            
+    //         plane.userData = {
+    //             itemId: item.id,
+    //             originalColor: item.color || 0x3498db,
+    //             isItemMesh: true
+    //         };
+            
+    //         // 添加轮廓
+    //         // 黑线
+    //         // const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
+    //         // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+    //         // const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+    //         // plane.add(outline);
+            
+    //         // 添加带有物品ID的文本标签
+    //         // const loader = new FontLoader();
+    //         // loader.load(
+    //         //     'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+    //         //     (font) => {
+    //         //         const textGeometry = new TextGeometry(item.id.replace('item', ''), {
+    //         //             font: font,
+    //         //             size: 0.3,
+    //         //             height: 0.05,
+    //         //         });
+    //         //         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    //         //         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    
+    //         //         // 计算并居中文本
+    //         //         textGeometry.computeBoundingBox();
+    //         //         const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+                    
+    //         //         // 将文本定位在物品中心
+    //         //         textMesh.position.set(
+    //         //             -textWidth / 2,
+    //         //             0.1, // 稍微高于平面
+    //         //             0
+    //         //         );
+    //         //         textMesh.rotation.x = Math.PI / 2;
+    //         //         plane.add(textMesh);
+    //         //     }
+    //         // );
+            
+    //         // 添加高度指示器
+    //         // 创建一条垂直线以显示高度
+    //         // 可以添加或删除
+    //         // const heightLineGeometry = new THREE.BufferGeometry();
+    //         // const heightVertices = [
+    //         //     0, 0, 0,
+    //         //     0, item.height, 0
+    //         // ];
+    //         // heightLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(heightVertices, 3));
+    //         // const heightLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    //         // const heightLine = new THREE.Line(heightLineGeometry, heightLineMaterial);
+    //         // plane.add(heightLine);
+            
+    //         sceneTop.add(plane);
+            
+    //         // 使顶视图中的其他物品变暗
+    //         sceneTop.children.forEach(child => {
+    //             if (child.userData && 
+    //                 child.userData.isItemMesh && 
+    //                 child.userData.itemId !== item.id) {
+    //                 if (child.material) {
+    //                     child.material.opacity = 0.3;
+    //                 }
+    //             }
+    //         });
+    //     }
+        
+    //     // 如果这是一个新放置的物品，添加到已放置物品列表中
+    //     if (!isItemPlaced) {
+    //         setPlacedItems(prev => [...prev, item]);
+    //     }
+    // }, [placedItems]);
+
+
     const addOrHighlightItem = useCallback((item) => {
         if (!scene3DRef.current || !sceneTopViewRef.current) return;
         
         // 首先检查是否已经放置过这个物品
         const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
+        
+        // 更新当前层级为当前物品的Y坐标
+        setCurrentLayerY(item.y);
         
         // 处理3D视图场景
         const scene3D = scene3DRef.current;
@@ -537,7 +734,8 @@ const WorkerConsole = () => {
             // 存储物品信息
             cube.userData = {
                 itemId: item.id,
-                originalColor: item.color || 0x3498db
+                originalColor: item.color || 0x3498db,
+                layerY: item.y
             };
             
             // 添加线框边缘以提高可见性
@@ -559,40 +757,32 @@ const WorkerConsole = () => {
             });
         }
         
-        // 现在单独处理顶视图
+        // 现在处理顶视图 - 首先清除所有当前物品
         const sceneTop = sceneTopViewRef.current;
         
-        // 检查物品是否已存在于顶视图场景中
-        const existingTopMesh = sceneTop.children.find(
-            child => child.userData && child.userData.itemId === item.id
+        // 清除之前的所有平面表示
+        sceneTop.children = sceneTop.children.filter(child => 
+            !child.userData || !child.userData.isItemMesh
         );
         
-        if (existingTopMesh) {
-            // 高亮显示此物品并使顶视图中的其他物品变暗
-            sceneTop.children.forEach(child => {
-                if (child.material && (
-                    child.material.type === 'MeshPhongMaterial' || 
-                    child.material.type === 'MeshBasicMaterial')) {
-                    if (child.userData && child.userData.itemId === item.id) {
-                        child.material.opacity = 0.9;
-                        child.material.color.set(item.color || 0x3498db);
-                    } else if (child.userData && child.userData.isItemMesh) {
-                        child.material.opacity = 0.3;
-                        child.material.color.set(child.userData.originalColor || 0xcccccc);
-                    }
-                }
-            });
-        } else {
-            // 对于顶视图，我们将使用更扁平的表示
-            // 创建一个2D矩形，从上方看物品
+        // 找出所有当前层的物品（包括当前选中的物品）
+        const itemsInCurrentLayer = itemList.filter(i => 
+            Math.abs(i.y - currentLayerY) < 0.01 || // 在当前层
+            i.id === item.id // 或是当前选中的物品
+        );
+        
+        // 为当前层的每个物品创建平面表示
+        itemsInCurrentLayer.forEach(layerItem => {
+            const isCurrentItem = layerItem.id === item.id;
+            
             const topMaterial = new THREE.MeshBasicMaterial({
-                color: item.color || 0x3498db,
+                color: layerItem.color || 0x3498db,
                 transparent: true,
-                opacity: 0.7
+                opacity: isCurrentItem ? 0.9 : 0.4
             });
             
             // 创建一个平面来表示顶视图中的物品
-            const planeGeometry = new THREE.PlaneGeometry(item.width, item.depth);
+            const planeGeometry = new THREE.PlaneGeometry(layerItem.width, layerItem.depth);
             const plane = new THREE.Mesh(planeGeometry, topMaterial);
             
             // 旋转使其平躺在XZ平面上
@@ -600,84 +790,65 @@ const WorkerConsole = () => {
             
             // 定位在物品XZ坐标的中心
             plane.position.set(
-                item.x + item.width / 2,
-                item.y, // 定位在物品底部
-                item.z + item.depth / 2
+                layerItem.x + layerItem.width / 2,
+                layerItem.y + 0.01, // 略高于物品表面，避免Z-fighting
+                layerItem.z + layerItem.depth / 2
             );
             
             plane.userData = {
-                itemId: item.id,
-                originalColor: item.color || 0x3498db,
-                isItemMesh: true
+                itemId: layerItem.id,
+                originalColor: layerItem.color || 0x3498db,
+                isItemMesh: true,
+                layerY: layerItem.y
             };
             
             // 添加轮廓
-            // 黑线
-            // const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
-            // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-            // const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
-            // plane.add(outline);
+            const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
+            const outlineMaterial = new THREE.LineBasicMaterial({ 
+                color: isCurrentItem ? 0x000000 : 0x666666,
+                linewidth: isCurrentItem ? 2 : 1
+            });
+            const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+            plane.add(outline);
             
-            // 添加带有物品ID的文本标签
-            // const loader = new FontLoader();
-            // loader.load(
-            //     'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
-            //     (font) => {
-            //         const textGeometry = new TextGeometry(item.id.replace('item', ''), {
-            //             font: font,
-            //             size: 0.3,
-            //             height: 0.05,
-            //         });
-            //         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            //         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+            // 添加物品ID标签
+            const loader = new FontLoader();
+            loader.load(
+                'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+                (font) => {
+                    const textGeometry = new TextGeometry(layerItem.id.replace('item', ''), {
+                        font: font,
+                        size: 0.2,
+                        height: 0.01,
+                    });
+                    const textMaterial = new THREE.MeshBasicMaterial({ 
+                        color: isCurrentItem ? 0x000000 : 0x444444 
+                    });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
                     
-            //         // 计算并居中文本
-            //         textGeometry.computeBoundingBox();
-            //         const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+                    // 计算并居中文本
+                    textGeometry.computeBoundingBox();
+                    const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
                     
-            //         // 将文本定位在物品中心
-            //         textMesh.position.set(
-            //             -textWidth / 2,
-            //             0.1, // 稍微高于平面
-            //             0
-            //         );
-            //         textMesh.rotation.x = Math.PI / 2;
-            //         plane.add(textMesh);
-            //     }
-            // );
-            
-            // 添加高度指示器
-            // 创建一条垂直线以显示高度
-            // 可以添加或删除
-            // const heightLineGeometry = new THREE.BufferGeometry();
-            // const heightVertices = [
-            //     0, 0, 0,
-            //     0, item.height, 0
-            // ];
-            // heightLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(heightVertices, 3));
-            // const heightLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-            // const heightLine = new THREE.Line(heightLineGeometry, heightLineMaterial);
-            // plane.add(heightLine);
+                    // 将文本定位在物品中心
+                    textMesh.position.set(
+                        -textWidth / 2,
+                        0.05, // 稍微高于平面
+                        0
+                    );
+                    textMesh.rotation.x = Math.PI / 2;
+                    plane.add(textMesh);
+                }
+            );
             
             sceneTop.add(plane);
-            
-            // 使顶视图中的其他物品变暗
-            sceneTop.children.forEach(child => {
-                if (child.userData && 
-                    child.userData.isItemMesh && 
-                    child.userData.itemId !== item.id) {
-                    if (child.material) {
-                        child.material.opacity = 0.3;
-                    }
-                }
-            });
-        }
+        });
         
         // 如果这是一个新放置的物品，添加到已放置物品列表中
         if (!isItemPlaced) {
             setPlacedItems(prev => [...prev, item]);
         }
-    }, [placedItems]);
+    }, [placedItems, itemList, currentLayerY]);
 
     // 初始化Three.js场景 - 现在创建两个场景：3D视图和顶视图
     useEffect(() => {
@@ -906,7 +1077,9 @@ const WorkerConsole = () => {
         const nextIndex = currentItemIndex + 1;
         if (nextIndex < itemList.length) {
             setCurrentItemIndex(nextIndex);
-            addOrHighlightItem(itemList[nextIndex]);
+            const nextItem = itemList[nextIndex];
+            setCurrentLayerY(nextItem.y); // 更新当前层级
+            addOrHighlightItem(nextItem);
         }
     };
 
@@ -915,16 +1088,19 @@ const WorkerConsole = () => {
         const prevIndex = currentItemIndex - 1;
         if (prevIndex >= 0) {
             setCurrentItemIndex(prevIndex);
-            addOrHighlightItem(itemList[prevIndex]);
+            const prevItem = itemList[prevIndex];
+            setCurrentLayerY(prevItem.y); // 更新当前层级
+            addOrHighlightItem(prevItem);
         }
     };
 
     // 处理从列表中选择物品
     const handleSelectItem = (item, index) => {
         setCurrentItemIndex(index);
+        setCurrentLayerY(item.y); // 更新当前层级
         addOrHighlightItem(item);
     };
-
+    
     // 处理刷新按钮点击
     const handleRefresh = () => {
         if (currentUser && currentUser.id) {
@@ -1122,7 +1298,7 @@ const WorkerConsole = () => {
                                     }}
                                 >
                                     <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
-                                        Top View - Current Layer
+                                        Top View - Current Layer (Y: {currentLayerY.toFixed(1)})
                                     </Typography>
                                     <Box 
                                         ref={mountTopViewRef} 
