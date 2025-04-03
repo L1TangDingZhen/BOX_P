@@ -142,3 +142,30 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# DRF Swagger设置
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'SECURITY_DEFINITIONS': {},
+    'LOGIN_URL': None,
+    'LOGOUT_URL': None,
+}
+
+# DRF设置
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# 为Swagger特别设置权限
+REST_FRAMEWORK_SWAGGER = {
+    'DEFAULT_AUTO_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'SECURITY_DEFINITIONS': {},
+}

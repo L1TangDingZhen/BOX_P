@@ -23,6 +23,7 @@ from .app import views
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 # 创建Swagger视图
 schema_view = get_schema_view(
@@ -36,6 +37,8 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
+    authentication_classes=(),  # 重要！禁用所有认证类
+
 )
 
 urlpatterns = [
