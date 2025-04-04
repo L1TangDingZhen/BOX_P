@@ -159,9 +159,11 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+    # # 添加以下豁免urls或视图名称
+    # 'UNAUTHENTICATED_USER': None,  # 对于未认证的请求，不创建匿名用户
 }
 
 # 为Swagger特别设置权限
