@@ -54,6 +54,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # 开发服务器
     "http://localhost:80",    # Docker中的Nginx
     "http://127.0.0.1:80",    # 通过IP访问Docker中的Nginx
+    "https://aimls.uk",
+    "https://www.aimls.uk"
 ]
 
 MIDDLEWARE = [
@@ -63,7 +65,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',   # 确保这行在CommonMiddleware之前
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
