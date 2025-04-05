@@ -12,6 +12,8 @@ import Mg from './box/mg';
 import Wk from './box/wk';
 import reportWebVitals from './reportWebVitals';
 import Reg from './box/reg';
+import AlgorithmUpload from './box/algorithm';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   // <React.StrictMode>
@@ -28,6 +30,7 @@ root.render(
         <Route path="/MG" element={<Mg />} />
         <Route path="/WK" element={<Wk />} />
         <Route path="/REG" element={<Reg />} />
+        <Route path="/alg" element={<AlgorithmUpload />} />
       </Routes>
     </Router>
   // </React.StrictMode>
@@ -40,4 +43,4 @@ reportWebVitals();
 
 
 // ISSUE: Two coordinate systems: MOST IMPORTANT
-// only disable strictmode can solve the problem
+// only disable strictmode can solve the problemss

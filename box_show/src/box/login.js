@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Card, Typography, TextField, Button, Link, Alert, CircularProgress } from '@mui/material';
-import { LockOutlined, PersonOutline } from '@mui/icons-material';
+import { LockOutlined, PersonOutline, Code as CodeIcon } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
 
 const Login = () => {
@@ -19,6 +19,11 @@ const Login = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    // handleGoToAlgorithm
+    const handleGoToAlgorithm = () => {
+        navigate('/alg');
     };
 
     // API login logic
@@ -176,10 +181,22 @@ const Login = () => {
                         {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
                     </Button>
                     
-                    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mb: 2 }}>
                         <Link href="/REG" underline="hover" color="primary" variant="body2">
                             Register new account
                         </Link>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', mb: 2 }}>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CodeIcon />}
+                            onClick={handleGoToAlgorithm}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Algorithm Upload
+                        </Button>
                     </Box>
                 </Box>
             </Card>

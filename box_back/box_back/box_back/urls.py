@@ -55,6 +55,9 @@ urlpatterns = [
     path('api/users/<int:user_id>/tasks/', views.get_user_tasks),
     path('api/workers/<int:worker_id>/tasks/', views.get_worker_tasks),
     
+    # alg api
+    path('api/algorithm/upload/', views.upload_algorithm, name='upload_algorithm'),
+
     # Swagger URLs
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
