@@ -85,11 +85,11 @@ const WorkerConsole = () => {
             id: `item${item.order_id}`,
             name: item.name,
             width: item.dimensions.x,
-            height: item.dimensions.y,
-            depth: item.dimensions.z,
+            height: item.dimensions.y,  // 调整为正确的映射
+            depth: item.dimensions.z,   // 调整为正确的映射
             x: item.position.x,
-            y: item.position.y,
-            z: item.position.z,
+            y: item.position.y,         // 调整为正确的映射
+            z: item.position.z,         // 调整为正确的映射
             constraints: [
                 ...(item.face_up ? ['Face Up'] : []),
                 ...(item.fragile ? ['Fragile'] : [])
