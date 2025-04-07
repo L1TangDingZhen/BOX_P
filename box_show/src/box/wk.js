@@ -1127,9 +1127,9 @@ const WorkerConsole = () => {
         <Box sx={{ 
             p: 0, 
             bgcolor: '#f5f5f5', 
-            height: '100vh', 
+            minHeight: '100vh', 
             position: 'relative',
-            overflow: 'hidden',
+            // overflow: 'auto',
             display: 'flex',
             flexDirection: 'column'
         }}>
@@ -1165,8 +1165,14 @@ const WorkerConsole = () => {
                 )}
                 
                 {/* Task selection section */}
-                <Paper elevation={3} sx={{ p: 2, mb: 2, borderRadius: 1 }}>
-                    <Typography variant="h6" gutterBottom>
+                <Paper elevation={3} sx={{ 
+                    p: 2, 
+                    mb: 2, 
+                    borderRadius: 1,
+                    maxHeight: '400px',  // 限制最大高度
+                    overflow: 'auto'     // 内容过多时可滚动
+                }}>
+                        <Typography variant="h6" gutterBottom>
                         Assigned Tasks
                     </Typography>
                     
@@ -1215,7 +1221,7 @@ const WorkerConsole = () => {
 
             {/* Main content area */}
             {selectedTask ? (
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <Box sx={{display: 'flex', flexDirection: 'column', pb: 2}}>
                     {/* Task details section */}
                     <Box sx={{ px: 2, pb: 1 }}>
                         <Paper elevation={3} sx={{ p: 2, borderRadius: 1 }}>
@@ -1247,25 +1253,23 @@ const WorkerConsole = () => {
                 
                     {/* 3D View, Top View and Item List */}
                     <Box sx={{ 
-                        flex: 1,
                         px: 2,
                         pb: 1,
                         display: 'flex',
-                        overflow: 'hidden'
+                        height: '500px' // 固定整个容器的高度
                     }}>
                         <Grid container spacing={2} sx={{ height: '100%' }}>
                             {/* 3D View */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
                                 <Paper 
                                     elevation={3} 
                                     sx={{ 
-                                        p: 1, 
-                                        height: '100%',
+                                        p: 1,
+                                        width: '100%', // 确保宽度填满Grid项 
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                         bgcolor: '#fff',
                                         borderRadius: 1,
-                                        overflow: 'hidden',
-                                        display: 'flex',
-                                        flexDirection: 'column'
                                     }}
                                 >
                                     <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
@@ -1284,17 +1288,16 @@ const WorkerConsole = () => {
                             </Grid>
                             
                             {/* Top View */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
                                 <Paper 
                                     elevation={3} 
                                     sx={{ 
                                         p: 1, 
-                                        height: '100%',
+                                        width: '100%', // 确保宽度填满Grid项
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                         bgcolor: '#fff',
                                         borderRadius: 1,
-                                        overflow: 'hidden',
-                                        display: 'flex',
-                                        flexDirection: 'column'
                                     }}
                                 >
                                     <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
@@ -1313,23 +1316,29 @@ const WorkerConsole = () => {
                             </Grid>
                             
                             {/* Item List */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
                                 <Paper 
                                     elevation={3} 
                                     sx={{ 
                                         p: 1, 
-                                        height: '100%',
+                                        width: '100%', // 确保宽度填满Grid项
+                                        display: 'flex',
+                                        flexDirection: 'column',
                                         bgcolor: '#fff',
                                         borderRadius: 1,
-                                        display: 'flex',
-                                        flexDirection: 'column'
                                     }}
                                 >
                                     <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
                                         List of Items ({itemList.length})
                                     </Typography>
-                                    <Box sx={{ overflow: 'auto', flex: 1 }}>
-                                        <List>
+                                    <Box 
+                                        sx={{ 
+                                            overflow: 'auto', 
+                                            flex: 1,
+                                            borderRadius: 1,
+                                        }}
+                                    >
+                                        <List disablePadding>
                                             {itemList.length === 0 ? (
                                                 <ListItem>
                                                     <ListItemText primary="No items in this task" />
