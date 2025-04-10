@@ -20,7 +20,9 @@ root.render(
     <Router>
       <Routes>
         {/* 根路径，加载 Box 组件 */}
-        <Route path="/" element={<Box />} />
+        {/* <Route path="/" element={<Box />} /> */}
+        <Route path="/" element={<Login />} />
+
         {/* /back 路径，加载 Back 组件 */}
         <Route path="/back" element={<Back />} />
         <Route path="/two" element={<Two />} />
