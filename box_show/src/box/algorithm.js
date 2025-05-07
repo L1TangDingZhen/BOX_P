@@ -26,32 +26,6 @@ const AlgorithmUpload = () => {
     });
     const navigate = useNavigate();
 
-    // Load user info
-    // useEffect(() => {
-    //     const userStr = localStorage.getItem('user');
-    //     if (userStr) {
-    //         try {
-    //             const user = JSON.parse(userStr);
-    //             setCurrentUser(user);
-                
-    //             // Redirect if not manager
-    //             if (!user.is_manager) {
-    //                 setSnackbar({
-    //                     open: true,
-    //                     message: 'Only managers can access this page',
-    //                     severity: 'error'
-    //                 });
-    //                 setTimeout(() => navigate('/MG'), 2000);
-    //             }
-    //         } catch (e) {
-    //             console.error('Error parsing user data from localStorage', e);
-    //             setTimeout(() => navigate('/login'), 2000);
-    //         }
-    //     } else {
-    //         setTimeout(() => navigate('/login'), 2000);
-    //     }
-    // }, [navigate]);
-
     const handleFileChange = (event) => {
         const selectedFile = event.target.files[0];
         

@@ -22,16 +22,18 @@ import {
     ArrowBack as PreviousIcon,
     Visibility as ViewIcon,
     Refresh as RefreshIcon,
+    Fullscreen as FullscreenIcon,
+    FullscreenExit as FullscreenExitIcon,
 } from '@mui/icons-material';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 import { API_BASE_URL } from '../config/api';
 
-
 const WorkerConsole = () => {
     // --- Refs ---
     const mount3DRef = useRef(null);  // 3D视图的ref
+    const mount3DContainerRef = useRef(null); // 3D视图容器ref（用于全屏）
     const mountTopViewRef = useRef(null);  // 顶视图的ref
     const scene3DRef = useRef(null);  // 3D视图场景
     const sceneTopViewRef = useRef(null);  // 顶视图场景
@@ -51,6 +53,7 @@ const WorkerConsole = () => {
     const [spaceSize, setSpaceSize] = useState({ x: 10, y: 10, z: 10 });
     const [placedItems, setPlacedItems] = useState([]);  // 跟踪已放置的物品
     const [currentLayerY, setCurrentLayerY] = useState(0);  // 跟踪当前显示层的Y坐标
+    const [isFullScreen, setIsFullScreen] = useState(false); // 全屏状态
 
 
     // Worker and tasks states
@@ -59,6 +62,31 @@ const WorkerConsole = () => {
     const [selectedTask, setSelectedTask] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // 检测iOS设备
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad/.test(navigator.userAgent);
+
+    const itemRefs = useRef({});
+    const listContainerRef = useRef(null);
+
+    const scrollToSelectedItem = useCallback(() => {
+        if (currentItemIndex >= 0 && itemRefs.current[currentItemIndex] && listContainerRef.current) {
+            const container = listContainerRef.current;
+            const containerRect = container.getBoundingClientRect();
+            
+            const itemElement = itemRefs.current[currentItemIndex];
+            const itemRect = itemElement.getBoundingClientRect();
+            
+            const relativeTop = itemRect.top - containerRect.top;
+            const relativeBottom = itemRect.bottom - containerRect.top;
+            
+            if (relativeTop < 0) {
+                container.scrollTop += relativeTop;
+            } else if (relativeBottom > containerRect.height) {
+                container.scrollTop += relativeBottom - containerRect.height;
+            }
+        }
+    }, [currentItemIndex]);
 
     // Generate a random color based on item ID for visualization
     const getRandomColor = (id) => {
@@ -130,6 +158,103 @@ const WorkerConsole = () => {
         }
     }, [handleSelectTask]);
 
+    // 处理窗口大小变化
+    const handleResize = useCallback(() => {
+        // 处理3D视图的窗口大小变化
+        if (renderer3DRef.current && mount3DRef.current && camera3DRef.current) {
+            const width = mount3DRef.current.clientWidth;
+            const height = mount3DRef.current.clientHeight;
+            renderer3DRef.current.setSize(width, height, true);
+            camera3DRef.current.aspect = width / height;
+            camera3DRef.current.updateProjectionMatrix();
+        }
+        
+        // 处理顶视图的窗口大小变化
+        if (rendererTopViewRef.current && mountTopViewRef.current && cameraTopViewRef.current) {
+            const width = mountTopViewRef.current.clientWidth;
+            const height = mountTopViewRef.current.clientHeight;
+            rendererTopViewRef.current.setSize(width, height, true);
+            
+            // 确保渲染
+            if (sceneTopViewRef.current) {
+                rendererTopViewRef.current.render(sceneTopViewRef.current, cameraTopViewRef.current);
+            }
+        }
+    }, []);
+
+    // 处理全屏切换
+    const toggleFullScreen = useCallback(async () => {
+        try {
+            // 保存相机状态
+            const camera = camera3DRef.current;
+            const currentPosition = camera?.position.clone();
+            const currentUp = camera?.up.clone();
+            
+            if (!isFullScreen) {
+                setIsFullScreen(true);
+                if (isIOS) {
+                    // iOS设备的全屏处理
+                    if (mount3DRef.current) {
+                        mount3DRef.current.style.position = "fixed";
+                        mount3DRef.current.style.top = "0";
+                        mount3DRef.current.style.left = "0";
+                        mount3DRef.current.style.width = "100vw";
+                        mount3DRef.current.style.height = "100vh";
+                        mount3DRef.current.style.zIndex = "9999";
+                        mount3DRef.current.style.backgroundColor = "#f0f0f0";
+                    }
+                } else {
+                    // 标准全屏API
+                    if (mount3DContainerRef.current?.requestFullscreen) {
+                        await mount3DContainerRef.current.requestFullscreen();
+                    } else if (mount3DContainerRef.current?.webkitRequestFullscreen) {
+                        await mount3DContainerRef.current.webkitRequestFullscreen();
+                    }
+                }
+            } else {
+                setIsFullScreen(false);
+                if (isIOS) {
+                    // iOS退出全屏
+                    if (mount3DRef.current) {
+                        mount3DRef.current.style.position = "";
+                        mount3DRef.current.style.top = "";
+                        mount3DRef.current.style.left = "";
+                        mount3DRef.current.style.width = "";
+                        mount3DRef.current.style.height = "";
+                        mount3DRef.current.style.zIndex = "";
+                        mount3DRef.current.style.backgroundColor = "";
+                    }
+                } else {
+                    // 标准退出全屏API
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    }
+                }
+            }
+            
+            // 延迟执行尺寸调整和渲染
+            setTimeout(() => {
+                handleResize();
+                
+                // 恢复相机状态
+                if (camera && currentPosition && currentUp) {
+                    camera.position.copy(currentPosition);
+                    camera.up.copy(currentUp);
+                    camera.lookAt(0, 0, 0);
+                }
+                
+                // 重新渲染
+                if (renderer3DRef.current && scene3DRef.current && camera3DRef.current) {
+                    renderer3DRef.current.render(scene3DRef.current, camera3DRef.current);
+                }
+            }, 100);
+        } catch (err) {
+            console.error("Error toggling fullscreen:", err);
+        }
+    }, [isFullScreen, isIOS, handleResize]);
+
     // Load user from localStorage
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -146,12 +271,179 @@ const WorkerConsole = () => {
         }
     }, []);
 
+    // 监听全屏变化
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            const isCurrentlyFullScreen = !!document.fullscreenElement;
+            setIsFullScreen(isCurrentlyFullScreen);
+            
+            // 全屏状态变化时执行尺寸调整
+            setTimeout(() => {
+                handleResize();
+            }, 100);
+        };
+        
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
+        
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullScreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
+        };
+    }, [handleResize]);
+    
+    // 专门处理退出全屏模式时顶视图的重建
+    useEffect(() => {
+        // 我们只关心从全屏模式切换到非全屏模式的情况
+        if (isFullScreen === false && mountTopViewRef.current) {
+            // 分两步处理，加快渲染速度
+            // 第一步：快速创建渲染器（100ms）
+            const timeout1 = setTimeout(() => {
+                console.log("退出全屏，快速重建顶视图...");
+                
+                // 完全删除旧的渲染器和画布
+                if (mountTopViewRef.current && rendererTopViewRef.current) {
+                    // 清除动画帧
+                    if (frameIdTopViewRef.current) {
+                        cancelAnimationFrame(frameIdTopViewRef.current);
+                        frameIdTopViewRef.current = null;
+                    }
+                    
+                    // 移除旧的canvas
+                    while (mountTopViewRef.current.firstChild) {
+                        mountTopViewRef.current.removeChild(mountTopViewRef.current.firstChild);
+                    }
+                    
+                    // 释放旧渲染器资源
+                    rendererTopViewRef.current.dispose();
+                    rendererTopViewRef.current = null;
+                }
+                
+                // 立即创建新的渲染器
+                if (mountTopViewRef.current) {
+                    // 设置为高性能模式
+                    const newRenderer = new THREE.WebGLRenderer({ 
+                        antialias: true,
+                        powerPreference: "high-performance"
+                    });
+                    const width = mountTopViewRef.current.clientWidth;
+                    const height = mountTopViewRef.current.clientHeight;
+                    newRenderer.setSize(width, height);
+                    mountTopViewRef.current.appendChild(newRenderer.domElement);
+                    rendererTopViewRef.current = newRenderer;
+                    
+                    // 快速渲染一个基本场景
+                    if (sceneTopViewRef.current && cameraTopViewRef.current) {
+                        // 立即渲染一次
+                        newRenderer.render(sceneTopViewRef.current, cameraTopViewRef.current);
+                        
+                        // 立即启动渲染循环
+                        const animateTopView = () => {
+                            frameIdTopViewRef.current = requestAnimationFrame(animateTopView);
+                            if (rendererTopViewRef.current && sceneTopViewRef.current && cameraTopViewRef.current) {
+                                rendererTopViewRef.current.render(sceneTopViewRef.current, cameraTopViewRef.current);
+                            }
+                        };
+                        animateTopView();
+                    }
+                }
+            }, 100); // 快速响应
+            
+            // 第二步：填充内容（再等150ms）
+            const timeout2 = setTimeout(() => {
+                if (rendererTopViewRef.current && sceneTopViewRef.current && currentItemIndex >= 0 && itemList[currentItemIndex]) {
+                    // 直接使用内联代码，避免循环引用问题
+                    const item = itemList[currentItemIndex];
+                    
+                    // 更新当前层为当前物品的Y坐标
+                    setCurrentLayerY(item.y);
+                    
+                    // 重新创建顶视图中的物品显示
+                    // 清除之前的所有平面表示
+                    const sceneTop = sceneTopViewRef.current;
+                    sceneTop.children = sceneTop.children.filter(child => 
+                        !child.userData || !child.userData.isItemMesh
+                    );
+                    
+                    // 找出所有当前层的物品
+                    const itemsInCurrentLayer = itemList.filter(i => 
+                        Math.abs(i.y - item.y) < 0.01 || // 在当前层
+                        i.id === item.id // 或是当前选中的物品
+                    );
+                    
+                    // 创建所有物品几何体（优化性能的批处理方法）
+                    const geometries = [];
+                    const materials = [];
+                    const planes = [];
+                    
+                    // 为当前层的每个物品创建平面表示
+                    itemsInCurrentLayer.forEach(layerItem => {
+                        const isCurrentItem = layerItem.id === item.id;
+                        
+                        const topMaterial = new THREE.MeshBasicMaterial({
+                            color: layerItem.color || 0x3498db,
+                            transparent: true,
+                            opacity: isCurrentItem ? 0.9 : 0.4
+                        });
+                        
+                        // 创建一个平面来表示顶视图中的物品
+                        const planeGeometry = new THREE.PlaneGeometry(layerItem.width, layerItem.depth);
+                        const plane = new THREE.Mesh(planeGeometry, topMaterial);
+                        
+                        // 旋转使其平躺在XZ平面上
+                        plane.rotation.x = -Math.PI / 2;
+                        
+                        // 定位在物品XZ坐标的中心
+                        plane.position.set(
+                            layerItem.x + layerItem.width / 2,
+                            layerItem.y + 0.01, // 略高于物品表面，避免Z-fighting
+                            layerItem.z + layerItem.depth / 2
+                        );
+                        
+                        plane.userData = {
+                            itemId: layerItem.id,
+                            originalColor: layerItem.color || 0x3498db,
+                            isItemMesh: true,
+                            layerY: layerItem.y
+                        };
+                        
+                        // 添加轮廓
+                        const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
+                        const outlineMaterial = new THREE.LineBasicMaterial({ 
+                            color: isCurrentItem ? 0x000000 : 0x666666,
+                            linewidth: isCurrentItem ? 2 : 1
+                        });
+                        const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+                        plane.add(outline);
+                        
+                        // 一次性添加所有物品
+                        sceneTop.add(plane);
+                    });
+                    
+                    // 再次渲染顶视图
+                    if (rendererTopViewRef.current && cameraTopViewRef.current) {
+                        rendererTopViewRef.current.render(sceneTop, cameraTopViewRef.current);
+                    }
+                }
+            }, 250); // 更快的渲染内容
+            
+            return () => {
+                clearTimeout(timeout1);
+                clearTimeout(timeout2);
+            };
+        }
+    }, [isFullScreen, currentItemIndex, itemList]);
+
     // Fetch worker tasks when component loads
     useEffect(() => {
         if (currentUser && currentUser.id) {
             fetchWorkerTasks(currentUser.id);
         }
     }, [currentUser, fetchWorkerTasks]);
+
+    useEffect(() => { 
+        scrollToSelectedItem(); 
+    }, [currentItemIndex, scrollToSelectedItem]);
 
     // 创建网格辅助线
     const createGrids = useCallback((scene, spaceSize, visible = true) => {
@@ -378,24 +670,6 @@ const WorkerConsole = () => {
         }
     }, [spaceSize]);
 
-    // 处理窗口大小变化
-    const handleResize = useCallback(() => {
-        // 处理3D视图的窗口大小变化
-        if (renderer3DRef.current && mount3DRef.current && camera3DRef.current) {
-            const width = mount3DRef.current.clientWidth;
-            const height = mount3DRef.current.clientHeight;
-            renderer3DRef.current.setSize(width, height, true);
-            camera3DRef.current.aspect = width / height;
-            camera3DRef.current.updateProjectionMatrix();
-        }
-        
-        // 处理顶视图的窗口大小变化
-        if (rendererTopViewRef.current && mountTopViewRef.current && cameraTopViewRef.current) {
-            const width = mountTopViewRef.current.clientWidth;
-            const height = mountTopViewRef.current.clientHeight;
-            rendererTopViewRef.current.setSize(width, height, true);
-        }
-    }, []);
 
     // 鼠标按下事件
     const handleMouseDown = useCallback((e) => {
@@ -410,278 +684,6 @@ const WorkerConsole = () => {
     const handleMouseUp = useCallback(() => {
         isMouseDown.current = false;
     }, []);
-
-    // 添加或高亮物品 - 修改后的函数
-    // const addOrHighlightItem = useCallback((item) => {
-    //     if (!scene3DRef.current || !sceneTopViewRef.current) return;
-        
-    //     // 首先检查是否已经放置过这个物品
-    //     const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
-        
-    //     // 所有物品在3D视图和顶视图中都要处理
-    //     const scenes = [scene3DRef.current, sceneTopViewRef.current];
-        
-    //     // 在两个场景中处理物品
-    //     scenes.forEach(scene => {
-    //         // 检查物品是否已存在于场景中
-    //         const existingMesh = scene.children.find(
-    //             child => child.userData && child.userData.itemId === item.id
-    //         );
-            
-    //         if (existingMesh) {
-    //             // 如果物品已存在，高亮显示它并使其他物品变暗
-    //             scene.children.forEach(child => {
-    //                 if (child.material && child.material.type === 'MeshPhongMaterial') {
-    //                     if (child.userData && child.userData.itemId === item.id) {
-    //                         // 当前物品高亮显示
-    //                         child.material.opacity = 0.8;
-    //                         child.material.color.set(item.color || 0x3498db);
-    //                     } else {
-    //                         // 其他物品变暗
-    //                         child.material.opacity = 0.3;
-    //                         child.material.color.set(child.userData.originalColor || 0xcccccc);
-    //                     }
-    //                 }
-    //             });
-    //         } else {
-    //             // 如果物品不存在，创建新物品
-    //             const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
-    //             const material = new THREE.MeshPhongMaterial({
-    //                 color: item.color || 0x3498db,
-    //                 transparent: true,
-    //                 opacity: 0.8
-    //             });
-                
-    //             const cube = new THREE.Mesh(geometry, material);
-    //             cube.position.set(
-    //                 item.x + item.width / 2,
-    //                 item.y + item.height / 2,
-    //                 item.z + item.depth / 2
-    //             );
-                
-    //             // 存储物品信息
-    //             cube.userData = {
-    //                 itemId: item.id,
-    //                 originalColor: item.color || 0x3498db
-    //             };
-                
-    //             // 添加线框边缘以提高可见性
-    //             const edges = new THREE.EdgesGeometry(geometry);
-    //             const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-    //             const wireframe = new THREE.LineSegments(edges, lineMaterial);
-    //             cube.add(wireframe);
-                
-    //             scene.add(cube);
-                
-    //             // 使其他物品半透明
-    //             scene.children.forEach(child => {
-    //                 if (child.material && 
-    //                     child.material.type === 'MeshPhongMaterial' && 
-    //                     child.userData && 
-    //                     child.userData.itemId !== item.id) {
-    //                     child.material.opacity = 0.3;
-    //                 }
-    //             });
-    //         }
-    //     });
-        
-    //     // 如果这是一个新放置的物品，添加到已放置物品列表中
-    //     if (!isItemPlaced) {
-    //         setPlacedItems(prev => [...prev, item]);
-    //     }
-    // }, [placedItems]);
-
-    // 添加或高亮物品 - 修改后的函数
-    // const addOrHighlightItem = useCallback((item) => {
-    //     if (!scene3DRef.current || !sceneTopViewRef.current) return;
-        
-    //     // 首先检查是否已经放置过这个物品
-    //     const isItemPlaced = placedItems.some(placedItem => placedItem.id === item.id);
-        
-    //     // 处理3D视图场景
-    //     const scene3D = scene3DRef.current;
-        
-    //     // 检查物品是否已存在于3D场景中
-    //     const existing3DMesh = scene3D.children.find(
-    //         child => child.userData && child.userData.itemId === item.id
-    //     );
-        
-    //     if (existing3DMesh) {
-    //         // 如果物品已存在，高亮显示它并使其他物品变暗
-    //         scene3D.children.forEach(child => {
-    //             if (child.material && child.material.type === 'MeshPhongMaterial') {
-    //                 if (child.userData && child.userData.itemId === item.id) {
-    //                     // 当前物品高亮显示
-    //                     child.material.opacity = 0.8;
-    //                     child.material.color.set(item.color || 0x3498db);
-    //                 } else {
-    //                     // 其他物品变暗
-    //                     child.material.opacity = 0.3;
-    //                     child.material.color.set(child.userData.originalColor || 0xcccccc);
-    //                 }
-    //             }
-    //         });
-    //     } else {
-    //         // 如果物品不存在，创建新物品 (3D视图)
-    //         const geometry = new THREE.BoxGeometry(item.width, item.height, item.depth);
-    //         const material = new THREE.MeshPhongMaterial({
-    //             color: item.color || 0x3498db,
-    //             transparent: true,
-    //             opacity: 0.8
-    //         });
-            
-    //         const cube = new THREE.Mesh(geometry, material);
-    //         cube.position.set(
-    //             item.x + item.width / 2,
-    //             item.y + item.height / 2,
-    //             item.z + item.depth / 2
-    //         );
-            
-    //         // 存储物品信息
-    //         cube.userData = {
-    //             itemId: item.id,
-    //             originalColor: item.color || 0x3498db
-    //         };
-            
-    //         // 添加线框边缘以提高可见性
-    //         const edges = new THREE.EdgesGeometry(geometry);
-    //         const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-    //         const wireframe = new THREE.LineSegments(edges, lineMaterial);
-    //         cube.add(wireframe);
-            
-    //         scene3D.add(cube);
-            
-    //         // 使其他物品半透明
-    //         scene3D.children.forEach(child => {
-    //             if (child.material && 
-    //                 child.material.type === 'MeshPhongMaterial' && 
-    //                 child.userData && 
-    //                 child.userData.itemId !== item.id) {
-    //                 child.material.opacity = 0.3;
-    //             }
-    //         });
-    //     }
-        
-    //     // 现在单独处理顶视图
-    //     const sceneTop = sceneTopViewRef.current;
-        
-    //     // 检查物品是否已存在于顶视图场景中
-    //     const existingTopMesh = sceneTop.children.find(
-    //         child => child.userData && child.userData.itemId === item.id
-    //     );
-        
-    //     if (existingTopMesh) {
-    //         // 高亮显示此物品并使顶视图中的其他物品变暗
-    //         sceneTop.children.forEach(child => {
-    //             if (child.material && (
-    //                 child.material.type === 'MeshPhongMaterial' || 
-    //                 child.material.type === 'MeshBasicMaterial')) {
-    //                 if (child.userData && child.userData.itemId === item.id) {
-    //                     child.material.opacity = 0.9;
-    //                     child.material.color.set(item.color || 0x3498db);
-    //                 } else if (child.userData && child.userData.isItemMesh) {
-    //                     child.material.opacity = 0.3;
-    //                     child.material.color.set(child.userData.originalColor || 0xcccccc);
-    //                 }
-    //             }
-    //         });
-    //     } else {
-    //         // 对于顶视图，我们将使用更扁平的表示
-    //         // 创建一个2D矩形，从上方看物品
-    //         const topMaterial = new THREE.MeshBasicMaterial({
-    //             color: item.color || 0x3498db,
-    //             transparent: true,
-    //             opacity: 0.7
-    //         });
-            
-    //         // 创建一个平面来表示顶视图中的物品
-    //         const planeGeometry = new THREE.PlaneGeometry(item.width, item.depth);
-    //         const plane = new THREE.Mesh(planeGeometry, topMaterial);
-            
-    //         // 旋转使其平躺在XZ平面上
-    //         plane.rotation.x = -Math.PI / 2;
-            
-    //         // 定位在物品XZ坐标的中心
-    //         plane.position.set(
-    //             item.x + item.width / 2,
-    //             item.y, // 定位在物品底部
-    //             item.z + item.depth / 2
-    //         );
-            
-    //         plane.userData = {
-    //             itemId: item.id,
-    //             originalColor: item.color || 0x3498db,
-    //             isItemMesh: true
-    //         };
-            
-    //         // 添加轮廓
-    //         // 黑线
-    //         // const outlineGeometry = new THREE.EdgesGeometry(planeGeometry);
-    //         // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-    //         // const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
-    //         // plane.add(outline);
-            
-    //         // 添加带有物品ID的文本标签
-    //         // const loader = new FontLoader();
-    //         // loader.load(
-    //         //     'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
-    //         //     (font) => {
-    //         //         const textGeometry = new TextGeometry(item.id.replace('item', ''), {
-    //         //             font: font,
-    //         //             size: 0.3,
-    //         //             height: 0.05,
-    //         //         });
-    //         //         const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    //         //         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                    
-    //         //         // 计算并居中文本
-    //         //         textGeometry.computeBoundingBox();
-    //         //         const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
-                    
-    //         //         // 将文本定位在物品中心
-    //         //         textMesh.position.set(
-    //         //             -textWidth / 2,
-    //         //             0.1, // 稍微高于平面
-    //         //             0
-    //         //         );
-    //         //         textMesh.rotation.x = Math.PI / 2;
-    //         //         plane.add(textMesh);
-    //         //     }
-    //         // );
-            
-    //         // 添加高度指示器
-    //         // 创建一条垂直线以显示高度
-    //         // 可以添加或删除
-    //         // const heightLineGeometry = new THREE.BufferGeometry();
-    //         // const heightVertices = [
-    //         //     0, 0, 0,
-    //         //     0, item.height, 0
-    //         // ];
-    //         // heightLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(heightVertices, 3));
-    //         // const heightLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    //         // const heightLine = new THREE.Line(heightLineGeometry, heightLineMaterial);
-    //         // plane.add(heightLine);
-            
-    //         sceneTop.add(plane);
-            
-    //         // 使顶视图中的其他物品变暗
-    //         sceneTop.children.forEach(child => {
-    //             if (child.userData && 
-    //                 child.userData.isItemMesh && 
-    //                 child.userData.itemId !== item.id) {
-    //                 if (child.material) {
-    //                     child.material.opacity = 0.3;
-    //                 }
-    //             }
-    //         });
-    //     }
-        
-    //     // 如果这是一个新放置的物品，添加到已放置物品列表中
-    //     if (!isItemPlaced) {
-    //         setPlacedItems(prev => [...prev, item]);
-    //     }
-    // }, [placedItems]);
-
 
     const addOrHighlightItem = useCallback((item) => {
         if (!scene3DRef.current || !sceneTopViewRef.current) return;
@@ -917,28 +919,6 @@ const WorkerConsole = () => {
         sceneTopViewRef.current = sceneTopView;
 
         // 为顶视图创建正交相机(顶视图)
-        // const aspectRatio = mountTopViewNode.clientWidth / mountTopViewNode.clientHeight;
-        // const viewSize = Math.max(spaceSize.x, spaceSize.z) * 1.2;  // 确保完全可见
-
-        // const cameraTopView = new THREE.OrthographicCamera(
-        //     -viewSize * aspectRatio / 2,
-        //     viewSize * aspectRatio / 2,
-        //     viewSize / 2,
-        //     -viewSize / 2,
-        //     0.1,
-        //     1000
-        // );
-        // // 将相机放置在指定位置
-        // cameraTopView.position.set(spaceSize.x / 2, spaceSize.y / 2, spaceSize.z * 5);
-        // console.log('Top view camera position:', cameraTopView.position);
-
-        // // 设置相机观察目标点 - 看向空间中心
-        // cameraTopView.lookAt(spaceSize.x / 2, spaceSize.y / 2, 0);
-        // // 设置相机的up方向 - 确保顶视图方向正确
-        // cameraTopView.up.set(0, 1, 0);
-
-        // 为顶视图创建正交相机(顶视图)
-        // 这里的问题
         const aspectRatio = mountTopViewNode.clientWidth / mountTopViewNode.clientHeight;
         const viewSize = Math.max(spaceSize.x, spaceSize.z) * 3;  // 确保完全可见 
 
@@ -959,9 +939,6 @@ const WorkerConsole = () => {
         // 设置相机的up方向 - 确保顶视图方向正确
         cameraTopView.up.set(0, 0, -1);
 
-
-
-
         cameraTopViewRef.current = cameraTopView;
 
         if (!rendererTopViewRef.current) {
@@ -970,17 +947,6 @@ const WorkerConsole = () => {
             mountTopViewNode.appendChild(rendererTopView.domElement);
             rendererTopViewRef.current = rendererTopView;
         }
-
-        // 为顶视图添加基本的网格和坐标轴
-        // const gridTopView = new THREE.GridHelper(
-        //     Math.max(spaceSize.x, spaceSize.z), 
-        //     Math.max(spaceSize.x, spaceSize.z), 
-        //     0x000000, 
-        //     0x555555
-        // );
-        // gridTopView.rotation.x = Math.PI / 2;
-        // gridTopView.position.set(spaceSize.x / 2, 0, spaceSize.z / 2);
-        // sceneTopView.add(gridTopView);
 
         // 为顶视图添加基本的网格和坐标轴
         const gridTopView = new THREE.GridHelper(
@@ -1006,17 +972,6 @@ const WorkerConsole = () => {
         const spaceOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
         const spaceOutline = new THREE.LineSegments(spaceOutlineGeometry, spaceOutlineMaterial);
         sceneTopView.add(spaceOutline);
-
-
-
-
-
-
-
-
-
-
-
 
         // 为顶视图添加光源
         const lightTopView = new THREE.DirectionalLight(0xffffff, 1);
@@ -1129,7 +1084,6 @@ const WorkerConsole = () => {
             bgcolor: '#f5f5f5', 
             minHeight: '100vh', 
             position: 'relative',
-            // overflow: 'auto',
             display: 'flex',
             flexDirection: 'column'
         }}>
@@ -1255,21 +1209,33 @@ const WorkerConsole = () => {
                     <Box sx={{ 
                         px: 2,
                         pb: 1,
-                        display: 'flex',
-                        height: '500px' // 固定整个容器的高度
+                        display: 'flex'
                     }}>
-                        <Grid container spacing={2} sx={{ height: '100%' }}>
+                        <Grid container spacing={2} sx={{ height: { xs: 'auto', md: '500px' } }}>
                             {/* 3D View */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
+                            <Grid item xs={12} md={4} sx={{ height: { xs: '400px', md: '100%' }, display: 'flex' }}>
                                 <Paper 
+                                    ref={mount3DContainerRef}
                                     elevation={3} 
                                     sx={{ 
                                         p: 1,
-                                        width: '100%', // 确保宽度填满Grid项 
+                                        width: '100%',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         bgcolor: '#fff',
                                         borderRadius: 1,
+                                        position: 'relative', // 为全屏按钮添加定位上下文
+                                        ...(isFullScreen && {
+                                            position: 'fixed',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            zIndex: 9999,
+                                            width: '100vw',
+                                            height: '100vh',
+                                            borderRadius: 0,
+                                        })
                                     }}
                                 >
                                     <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
@@ -1284,223 +1250,267 @@ const WorkerConsole = () => {
                                             overflow: 'hidden' 
                                         }}
                                     />
-                                </Paper>
-                            </Grid>
-                            
-                            {/* Top View */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
-                                <Paper 
-                                    elevation={3} 
-                                    sx={{ 
-                                        p: 1, 
-                                        width: '100%', // 确保宽度填满Grid项
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        bgcolor: '#fff',
-                                        borderRadius: 1,
-                                    }}
-                                >
-                                    <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
-                                        Top View - Current Layer (Y: {currentLayerY.toFixed(1)})
-                                    </Typography>
-                                    <Box 
-                                        ref={mountTopViewRef} 
-                                        sx={{ 
-                                            width: '100%', 
-                                            flex: 1,
-                                            borderRadius: 1,
-                                            overflow: 'hidden' 
-                                        }}
-                                    />
-                                </Paper>
-                            </Grid>
-                            
-                            {/* Item List */}
-                            <Grid item xs={12} md={4} sx={{ height: '100%', display: 'flex' }}>
-                                <Paper 
-                                    elevation={3} 
-                                    sx={{ 
-                                        p: 1, 
-                                        width: '100%', // 确保宽度填满Grid项
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        bgcolor: '#fff',
-                                        borderRadius: 1,
-                                    }}
-                                >
-                                    <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
-                                        List of Items ({itemList.length})
-                                    </Typography>
-                                    <Box 
-                                        sx={{ 
-                                            overflow: 'auto', 
-                                            flex: 1,
-                                            borderRadius: 1,
+                                    
+                                    {/* 全屏按钮 */}
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            bottom: 16,
+                                            right: 16,
+                                            zIndex: 9999,
                                         }}
                                     >
-                                        <List disablePadding>
-                                            {itemList.length === 0 ? (
-                                                <ListItem>
-                                                    <ListItemText primary="No items in this task" />
-                                                </ListItem>
-                                            ) : (
-                                                itemList.map((item, index) => (
-                                                    <React.Fragment key={item.id}>
-                                                        <ListItem 
-                                                            button 
-                                                            selected={currentItemIndex === index}
-                                                            onClick={() => handleSelectItem(item, index)}
-                                                            sx={{
-                                                                bgcolor: currentItemIndex === index ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
-                                                                borderLeft: currentItemIndex === index ? '4px solid #1976d2' : 'none',
-                                                                pl: currentItemIndex === index ? 1 : 2
-                                                            }}
-                                                        >
-                                                            <ListItemText 
-                                                                primary={`${item.name} (${item.id})`}
-                                                                secondary={
-                                                                    <>
-                                                                        <Typography component="span" variant="body2" color="text.primary">
-                                                                            {`${item.width} × ${item.height} × ${item.depth}`}
-                                                                        </Typography>
-                                                                        {item.constraints?.length > 0 && (
-                                                                            <Typography component="span" variant="body2" color="text.secondary">
-                                                                                {` - ${item.constraints.join(', ')}`}
-                                                                            </Typography>
-                                                                        )}
-                                                                    </>
-                                                                } 
-                                                            />
-                                                            <Tooltip title="View this item in 3D" placement="left">
-                                                                <IconButton 
-                                                                    size="small" 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleSelectItem(item, index);
-                                                                    }}
-                                                                    aria-label="View item"
-                                                                >
-                                                                    <ViewIcon fontSize="small" />
-                                                                </IconButton>
-                                                            </Tooltip>
-                                                        </ListItem>
-                                                        {index < itemList.length - 1 && <Divider />}
-                                                    </React.Fragment>
-                                                ))
-                                            )}
-                                        </List>
+                                        <Button
+                                            variant="contained"
+                                            size="small"
+                                            onClick={toggleFullScreen}
+                                            sx={{
+                                                minWidth: 'auto',
+                                                p: 1,
+                                                bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                                color: 'white',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(0, 0, 0, 0.8)'
+                                                }
+                                            }}
+                                        >
+                                            {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                                        </Button>
                                     </Box>
                                 </Paper>
                             </Grid>
+                            
+                            {/* Top View - 只在非全屏模式下显示 */}
+                            {!isFullScreen && (
+                                <Grid item xs={12} md={4} sx={{ height: { xs: '400px', md: '100%' }, display: 'flex' }}>
+                                    <Paper 
+                                        elevation={3} 
+                                        sx={{ 
+                                            p: 1, 
+                                            width: '100%',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            bgcolor: '#fff',
+                                            borderRadius: 1,
+                                        }}
+                                    >
+                                        <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
+                                            Top View - Current Layer (Y: {currentLayerY.toFixed(1)})
+                                        </Typography>
+                                        <Box 
+                                            ref={mountTopViewRef} 
+                                            sx={{ 
+                                                width: '100%', 
+                                                flex: 1,
+                                                borderRadius: 1,
+                                                overflow: 'hidden' 
+                                            }}
+                                        />
+                                    </Paper>
+                                </Grid>
+                            )}
+                            
+                            {/* Item List - 只在非全屏模式下显示 */}
+                            {!isFullScreen && (
+                                <Grid item xs={12} md={4} sx={{ height: { xs: 'auto', md: '100%' }, display: 'flex' }}>
+                                    <Paper 
+                                        elevation={3} 
+                                        sx={{ 
+                                            p: 1, 
+                                            width: '100%',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            bgcolor: '#fff',
+                                            borderRadius: 1,
+                                        }}
+                                    >
+                                        <Typography variant="subtitle1" align="center" sx={{ mb: 1, flexShrink: 0 }}>
+                                            List of Items ({itemList.length})
+                                        </Typography>
+                                        <Box
+                                            ref={listContainerRef}
+                                            sx={{ 
+                                                overflow: 'auto', 
+                                                flex: 1,
+                                                borderRadius: 1,
+                                                maxHeight: { xs: '300px', md: 'calc(100% - 80px)' },
+                                            }}
+                                        >
+                                            <List disablePadding>
+                                                {itemList.length === 0 ? (
+                                                    <ListItem>
+                                                        <ListItemText primary="No items in this task" />
+                                                    </ListItem>
+                                                ) : (
+                                                    itemList.map((item, index) => (
+                                                        <React.Fragment key={item.id}>
+                                                            <ListItem
+                                                                ref={el => itemRefs.current[index] = el}
+                                                                button 
+                                                                selected={currentItemIndex === index}
+                                                                onClick={() => handleSelectItem(item, index)}
+                                                                sx={{
+                                                                    bgcolor: currentItemIndex === index ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                                                                    borderLeft: currentItemIndex === index ? '4px solid #1976d2' : 'none',
+                                                                    pl: currentItemIndex === index ? 1 : 2
+                                                                }}
+                                                            >
+                                                                <ListItemText 
+                                                                    primary={`${item.name} (${item.id})`}
+                                                                    secondary={
+                                                                        <>
+                                                                            <Typography component="span" variant="body2" color="text.primary">
+                                                                                {`${item.width} × ${item.height} × ${item.depth}`}
+                                                                            </Typography>
+                                                                            {item.constraints?.length > 0 && (
+                                                                                <Typography component="span" variant="body2" color="text.secondary">
+                                                                                    {` - ${item.constraints.join(', ')}`}
+                                                                                </Typography>
+                                                                            )}
+                                                                        </>
+                                                                    } 
+                                                                />
+                                                                <Tooltip title="View this item in 3D" placement="left">
+                                                                    <IconButton 
+                                                                        size="small" 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleSelectItem(item, index);
+                                                                        }}
+                                                                        aria-label="View item"
+                                                                    >
+                                                                        <ViewIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </ListItem>
+                                                            {index < itemList.length - 1 && <Divider />}
+                                                        </React.Fragment>
+                                                    ))
+                                                )}
+                                            </List>
+                                        </Box>
+
+                                        {/* 导航按钮 - 位于列表下方 */}
+                                        <Box sx={{ 
+                                            mt: 1,
+                                            pt: 1,
+                                            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <Stack 
+                                                direction="row" 
+                                                spacing={2} 
+                                                justifyContent="space-between" 
+                                                sx={{ width: '100%' }}
+                                            >
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<PreviousIcon />}
+                                                    onClick={handlePreviousItem}
+                                                    disabled={currentItemIndex <= 0 || itemList.length === 0}
+                                                    size="small"
+                                                    sx={{ flex: 1 }}
+                                                >
+                                                    Previous
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    color="primary"
+                                                    endIcon={<NextIcon />}
+                                                    onClick={handleNextItem}
+                                                    disabled={currentItemIndex >= itemList.length - 1 || itemList.length === 0}
+                                                    size="small"
+                                                    sx={{ flex: 1 }}
+                                                >
+                                                    Next
+                                                </Button>
+                                            </Stack>
+                                        </Box>
+                                    </Paper>
+                                </Grid>
+                            )}
                         </Grid>
                     </Box>
 
-                    {/* Item Details Section */}
-                    <Box sx={{ p: 2, pt: 1 }}>
-                        <Paper 
-                            elevation={3}
-                            sx={{ 
-                                p: 2, 
-                                bgcolor: '#fff',
-                                borderRadius: 1,
-                                overflow: 'auto'
-                            }}
-                        >
-                            <Typography variant="h6" gutterBottom>
-                                Item Information
-                            </Typography>
-                            
-                            {currentItem ? (
-                                <Card variant="outlined">
-                                    <CardContent>
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={12} sm={3}>
-                                                <Typography variant="subtitle2" color="primary">ID:</Typography>
-                                                <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    {currentItem.id}
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12} sm={3}>
-                                                <Typography variant="subtitle2" color="primary">Name:</Typography>
-                                                <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    {currentItem.name}
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12} sm={3}>
-                                                <Typography variant="subtitle2" color="primary">Dimensions (W×H×D):</Typography>
-                                                <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    {`${currentItem.width} × ${currentItem.height} × ${currentItem.depth}`}
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12} sm={3}>
-                                                <Typography variant="subtitle2" color="primary">Constraints:</Typography>
-                                                <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    {currentItem.constraints?.length > 0 
-                                                    ? currentItem.constraints.join(', ') 
-                                                    : "None"}
-                                                </Typography>
-                                            </Grid>
-                                            
-                                            <Grid item xs={12}>
-                                                <Typography variant="subtitle2" color="primary">Placement Position:</Typography>
-                                                <Typography variant="body1">
-                                                    {`X: ${currentItem.x}, Y: ${currentItem.y}, Z: ${currentItem.z}`}
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center',
-                                    border: '1px dashed #ccc',
+                    {/* Item Details Section - 只在非全屏模式下显示 */}
+                    {!isFullScreen && (
+                        <Box sx={{ p: 2, pt: 1, order: 5 }}>
+                            <Paper 
+                                elevation={3}
+                                sx={{ 
+                                    p: 2, 
+                                    bgcolor: '#fff',
                                     borderRadius: 1,
-                                    p: 2
-                                }}>
-                                    <Typography variant="body1" color="text.secondary" align="center">
-                                        Select an item from the list above or use the navigation buttons below to see item details.
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Paper>
-                    </Box>
-
-                    {/* Navigation Buttons */}
-                    <Box sx={{ 
-                        p: 2, 
-                        pt: 1, 
-                        pb: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        <Stack direction="row" spacing={4} justifyContent="center">
-                            <Button
-                                variant="outlined"
-                                startIcon={<PreviousIcon />}
-                                onClick={handlePreviousItem}
-                                disabled={currentItemIndex <= 0 || itemList.length === 0}
-                                sx={{ width: 160 }}
+                                    overflow: 'auto'
+                                }}
                             >
-                                Previous Item
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                endIcon={<NextIcon />}
-                                onClick={handleNextItem}
-                                disabled={currentItemIndex >= itemList.length - 1 || itemList.length === 0}
-                                sx={{ width: 160 }}
-                            >
-                                Next Item
-                            </Button>
-                        </Stack>
-                    </Box>
+                                <Typography variant="h6" gutterBottom>
+                                    Item Information
+                                </Typography>
+                                
+                                {currentItem ? (
+                                    <Card variant="outlined">
+                                        <CardContent>
+                                            <Grid container spacing={2}>
+                                                <Grid item xs={12} sm={3}>
+                                                    <Typography variant="subtitle2" color="primary">ID:</Typography>
+                                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                                        {currentItem.id}
+                                                    </Typography>
+                                                </Grid>
+                                                
+                                                <Grid item xs={12} sm={3}>
+                                                    <Typography variant="subtitle2" color="primary">Name:</Typography>
+                                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                                        {currentItem.name}
+                                                    </Typography>
+                                                </Grid>
+                                                
+                                                <Grid item xs={12} sm={3}>
+                                                    <Typography variant="subtitle2" color="primary">Dimensions (W×H×D):</Typography>
+                                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                                        {`${currentItem.width} × ${currentItem.height} × ${currentItem.depth}`}
+                                                    </Typography>
+                                                </Grid>
+                                                
+                                                <Grid item xs={12} sm={3}>
+                                                    <Typography variant="subtitle2" color="primary">Constraints:</Typography>
+                                                    <Typography variant="body1" sx={{ mb: 1 }}>
+                                                        {currentItem.constraints?.length > 0 
+                                                        ? currentItem.constraints.join(', ') 
+                                                        : "None"}
+                                                    </Typography>
+                                                </Grid>
+                                                
+                                                <Grid item xs={12}>
+                                                    <Typography variant="subtitle2" color="primary">Placement Position:</Typography>
+                                                    <Typography variant="body1">
+                                                        {`X: ${currentItem.x}, Y: ${currentItem.y}, Z: ${currentItem.z}`}
+                                                    </Typography>
+                                                </Grid>
+                                            </Grid>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center',
+                                        border: '1px dashed #ccc',
+                                        borderRadius: 1,
+                                        p: 2
+                                    }}>
+                                        <Typography variant="body1" color="text.secondary" align="center">
+                                            Select an item from the list above or use the navigation buttons to see item details.
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Paper>
+                        </Box>
+                    )}
                 </Box>
             ) : (
                 <Box sx={{ 
