@@ -3,3 +3,11 @@ Technical Documentation.docx
 box_placement_data.csv
 sty.txt
 design document.pdf
+# Conda environment files
+.conda/
+
+# VSCode settings
+.vscode/
+
+# Python cache files
+__pycache__/
